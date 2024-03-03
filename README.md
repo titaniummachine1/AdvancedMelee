@@ -2,13 +2,12 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 
-# Cheater_Detection
-![image](https://github.com/titaniummachine1/Cheater_Detection/assets/78664175/0b551b8b-1585-42b8-bbed-17104350e8d9)
+# Advanced Melee
+![image](https://github.com/titaniummachine1/AdvancedMelee/assets/78664175/ac1c5cae-90ef-4561-9549-832220f426a6)
+
 
 ## Description
-Automatic bot and cheater detection and adds priority on cheaters.
-with visuals based on Rijin
-
+still POC and beta
 
 [In case of problems Contact me on Telegram](https://t.me/TerminatorMachine)
 https://t.me/TerminatorMachine
@@ -22,8 +21,6 @@ Click on the buttons below to download the requirements. V
 
 
 ## Download
-[![Download Latest](https://img.shields.io/github/downloads/titaniummachine1/Cheater_Priority/total.svg?style=for-the-badge&logo=download&label=Download%20Latest)](https://github.com/titaniummachine1/Cheater_Detection/releases/latest/download/Cheater_Detection.lua)
-
-![image](https://github.com/titaniummachine1/Cheater_Detection/assets/78664175/bc8ea7b4-1313-46c2-a3a3-87b71ce0116b)
+[![Download Latest](https://img.shields.io/github/downloads/titaniummachine1/AdvancedMelee/total.svg?style=for-the-badge&logo=download&label=Download%20Latest)](https://github.com/titaniummachine1/AdvancedMelee/releases/latest/download/AdvancedMelee.lua)
 
 
