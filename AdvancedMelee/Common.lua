@@ -35,6 +35,22 @@ function Common.Normalize(vec)
     return Vector3(vec.x / length, vec.y / length, vec.z / length)
 end
 
+local LastAttackTick = 0
+local AttackHappened = false
+
+function Common.GetLastAttackTime(cmd, weapon)
+    local TickCount = globals.TickCount()
+    local NextAttackTime = Globals.pLocal.Actions.NextAttackTime
+    if not AttackHappened and NextAttackTime >= TickCount then
+        LastAttackTick = TickCount
+        print(LastAttackTick)
+        AttackHappened = true
+    elseif AttackHappened and NextAttackTime < TickCount then
+        AttackHappened = false
+    end
+    return LastAttackTick
+end
+
 -- [WIP] Predict the position of a player
 ---@param player WPlayer
 ---@param t integer
@@ -47,11 +63,18 @@ function Common.PredictPlayer(player, t, d)
         local vStep = Vector3(0, 0, Globals.World.StepHeight)
         local shouldHitEntity = function(entity) return entity:GetName() ~= player:GetName() end --trace ignore simulated player 
         local pFlags = player:GetPropInt("m_fFlags")
+        local OnGround = pFlags & FL_ONGROUND == 1
+        local vHitbox = Globals.pLocal.vHitbox and player == Globals.pLocal.entity
+        or Globals.vTarget.vHitbox 
+        or Globals.Defaults.vHitbox
+        local pLocal = Globals.pLocal.entity
+        local pLocalIndex = Globals.pLocal.index
+
         -- Add the current record
         local _out = {
             pos = { [0] = player:GetAbsOrigin() },
             vel = { [0] = player:EstimateAbsVelocity() },
-            onGround = { [0] = player:IsOnGround() }
+            onGround = { [0] = OnGround }
         }
 
         -- Perform the prediction
@@ -71,7 +94,7 @@ function Common.PredictPlayer(player, t, d)
 
             --[[ Forward collision ]]
 
-            local wallTrace = engine.TraceHull(lastP + vStep, pos + vStep, vHitbox[1], vHitbox[2], MASK_PLAYERSOLID_BRUSHONLY, shouldHitEntity)
+            local wallTrace = engine.TraceHull(lastP + vStep, pos + vStep, vHitbox.Min, vHitbox.Max, MASK_PLAYERSOLID_BRUSHONLY, shouldHitEntity)
             --DrawLine(last.p + vStep, pos + vStep)
             if wallTrace.fraction < 1 then
                 -- We'll collide
@@ -95,7 +118,7 @@ function Common.PredictPlayer(player, t, d)
             if not onGround1 then downStep = Vector3() end
 
             -- Ground collision
-            local groundTrace = engine.TraceHull(pos + vStep, pos - downStep, vHitbox[1], vHitbox[2], MASK_PLAYERSOLID_BRUSHONLY, shouldHitEntity)
+            local groundTrace = engine.TraceHull(pos + vStep, pos - downStep, vHitbox.Min, vHitbox.Max, MASK_PLAYERSOLID_BRUSHONLY, shouldHitEntity)
             if groundTrace.fraction < 1 then
                 -- We'll hit the ground
                 local normal = groundTrace.plane
@@ -103,7 +126,7 @@ function Common.PredictPlayer(player, t, d)
 
                 -- Check the ground angle
                 if angle < 45 then
-                    if onGround1 and player:GetIndex() == pLocal:GetIndex() and gui.GetValue("Bunny Hop") == 1 and input.IsButtonDown(KEY_SPACE) then
+                    if onGround1 and player:GetIndex() == pLocalIndex and gui.GetValue("Bunny Hop") == 1 and input.IsButtonDown(KEY_SPACE) then
                         -- Jump
                         if gui.GetValue("Duck Jump") == 1 then
                             vel.z = 277
@@ -169,18 +192,18 @@ function Common.GetBestTarget(me)
         end
 
         local playerOrigin = player:GetAbsOrigin()
-        local distance = (playerOrigin - localPlayer:GetAbsOrigin()):Length()
+        local distance = (playerOrigin - Globals.pLocal.GetAbsOrigin):Length()
 
         if distance <= 770 then
             local Pviewoffset = player:GetPropVector("localdata", "m_vecViewOffset[0]")
             local Pviewpos = playerOrigin + Pviewoffset
 
-            local angles = Math.PositionAngles(localPlayer:GetAbsOrigin(), Pviewpos)
-            local fov = Math.AngleFov(localPlayerViewAngles, angles)
+            local angles = Math.PositionAngles(Globals.pLocal.GetAbsOrigin, Pviewpos)
+            local fov = Math.AngleFov(Globals.pLocal.ViewAngles, angles)
 
             if fov <= Menu.Aimbot.AimbotFOV then
-                local distanceFactor = Math.RemapValClamped(distance, settings.MinDistance, settings.MaxDistance, 1, 0.9)
-                local fovFactor = Math.RemapValClamped(fov, settings.MinFOV, Menu.Aimbot.AimbotFOV, 1, 1)
+                local distanceFactor = Math.RemapValClamped(distance, 0, 1000, 1, 0.9)
+                local fovFactor = Math.RemapValClamped(fov, 0, Menu.Aimbot.AimbotFOV, 1, 1)
 
                 local factor = distanceFactor * fovFactor
                 if factor > bestFactor then
@@ -195,15 +218,71 @@ function Common.GetBestTarget(me)
     return bestTarget
 end
 
+-- Function to check if target is in range
+function Common.checkInRange(targetPos, spherePos, sphereRadius)
+    local HitboxMin = Globals.vTarget.vHitbox.Min
+    local HitboxMax = Globals.vTarget.vHitbox.Max
+    local TargetEntity = Globals.vTarget.entity
+    --if Menu.Misc.ChargeReach and pLocalClass == 4 and chargeLeft == 100 then sphereRadius = 128 end
+    local hitbox_min_trigger = Globals.vTarget.GetAbsOrigin + HitboxMin
+    local hitbox_max_trigger = Globals.vTarget.GetAbsOrigin + HitboxMax
+
+    -- Calculate the closest point on the hitbox to the sphere
+    local closestPoint = Vector3(
+        math.max(hitbox_min_trigger.x, math.min(spherePos.x, hitbox_max_trigger.x)),
+        math.max(hitbox_min_trigger.y, math.min(spherePos.y, hitbox_max_trigger.y)),
+        math.max(hitbox_min_trigger.z, math.min(spherePos.z, hitbox_max_trigger.z))
+    )
+
+    -- Calculate the distance from the closest point to the sphere center
+    local distanceAlongVector = (spherePos - closestPoint):Length()
+
+    -- Check if the target is within the sphere radius
+    if sphereRadius > distanceAlongVector then
+        -- Calculate the direction from spherePos to closestPoint
+        local direction = Common.Normalize(closestPoint - spherePos)
+        local closestPointLine = spherePos + direction * Globals.pLocal.SwingData.SwingRange
+
+        if Globals.Menu.Misc.AdvancedHitreg then
+            if sphereRadius > distanceAlongVector - Globals.pLocal.SwingData.SwingHullSize then --if trace line is needed
+ 
+                local trace = engine.TraceLine(spherePos, closestPointLine, MASK_SHOT_HULL)
+                if trace.fraction < 1 and trace.entity == TargetEntity then
+                    return true, closestPoint
+                else
+                    trace = engine.TraceHull(spherePos, closestPointLine, Globals.SwingData.SwingHull.Min, Globals.SwingData.SwingHull.Max, MASK_SHOT_HULL)
+                    if trace.fraction < 1 and trace.entity == TargetEntity then
+                        return true, closestPoint
+                    else
+                        return false, nil
+                    end
+                end
+            else
+                local trace = engine.TraceHull(spherePos,  closestPointLine, HitboxMin, HitboxMax, MASK_SHOT_HULL)
+                if trace.fraction < 1 and trace.entity == TargetEntity then
+                    return true, closestPoint
+                else
+                    return false, nil
+                end
+            end
+        end
+
+        return true, closestPoint
+    else
+        -- Target is not in range
+        return false, nil
+    end
+end
+
 function Common.CalcStrafe()
     local autostrafe = gui.GetValue("Auto Strafe")
-    local flags = entities.GetLocalPlayer():GetPropInt("m_fFlags")
+    local flags = Globals.pLocal.entity:GetPropInt("m_fFlags")
     local OnGround = flags & FL_ONGROUND == 1
 
     for idx, entity in ipairs(Globals.Players) do
         local entityIndex = entity:GetIndex()
 
-        if entity:IsDormant() or not entity:IsAlive() then
+        if not entity or not entity:IsValid() and entity:IsDormant() or not entity:IsAlive() then
             Globals.StrafeData.lastAngles[entityIndex] = nil
             Globals.StrafeData.lastDeltas[entityIndex] = nil
             Globals.StrafeData.avgDeltas[entityIndex] = nil

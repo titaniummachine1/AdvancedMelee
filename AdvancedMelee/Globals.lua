@@ -48,11 +48,16 @@ Globals.Menu = {
         },
     },
     Misc = {
+        AdvancedHitreg = true,
         CritRefill = {Active = true, NumCrits = 1},
         CritMode = 1,
         CritModes = {"Rage", "On Button"},
         TroldierAssist = false,
     },
+}
+
+Globals.Defaults = {
+    vHitbox = {Min = Vector3(-24, -24, 0), Max = Vector3(24, 24, 82)}
 }
 
 Globals.pLocal = {
@@ -75,12 +80,22 @@ Globals.pLocal = {
     WeaponDef = nil,
     WeaponName = nil,
     UsingMargetGarden = false,
-    SwingRange = 48,
-    SwingGHullSize = 35.6,
-    Can_Attack = false,
-    can_charge = false,
+    SwingData = {
+        SwingRange = 48,
+        SwingHullSize = 35.6,
+        SwingHull = {Max = Vector3(17.8,17.8,17.8), Min = Vector3(-17.8,-17.8,-17.8)},
+        TotalSwingRange = 48 + (35.6 / 2),
+    },
+    Actions = {
+        CanSwing = false,
+        NextAttackTime = 0,
+        LastAttackTime = 0,
+        TicksBeforeHit = 0,
+        CanCharge = false,
+    },
     BlastJump = false,
     ChargeLeft = 0,
+    vHitbox = {Min = Vector3(-24, -24, 0), Max = Vector3(24, 24, 82)}
 }
 
 Globals.Players = {}
@@ -91,6 +106,7 @@ Globals.vTarget = {
     GetAbsOrigin = nil,
     PredTicks = {},
     BacktrackTicks = {},
+    vHitbox = {Min = Vector3(-24, -24, 0), Max = Vector3(24, 24, 82)}
 }
 
 Globals.StrafeData = {

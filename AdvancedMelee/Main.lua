@@ -19,7 +19,7 @@ require("AdvancedMelee.Menu")
 --Modules--
 require("AdvancedMelee.Modules.Misc")
 
-local function OnCreateMove()
+local function OnCreateMove(cmd)
     -- Update local player data
     Globals.pLocal.entity = entities.GetLocalPlayer() -- Update local player entity
     local pLocal = Globals.pLocal.entity
@@ -30,6 +30,22 @@ local function OnCreateMove()
 
     -- Update strafe angles
     Common.CalcStrafe()
+
+    -- GUI properties
+    Globals.Gui.Backtrack = gui.GetValue("Backtrack")
+    Globals.Gui.FakeLatency = gui.GetValue("Fake Latency")
+    Globals.Gui.FakeLatencyAmount = gui.GetValue("Fake Latency Value (MS)")
+    if not Globals.Gui.IsVisible then --dont force update if menu is open
+        Globals.Gui.CritHackKey = gui.GetValue("Crit Hack Key")
+    end
+
+    -- World properties
+    Globals.World.Gravity = client.GetConVar("sv_gravity")
+    Globals.World.StepHeight = pLocal:GetPropFloat("localdata", "m_flStepSize")
+    Globals.World.Lerp = client.GetConVar("cl_interp") or 0
+    Globals.World.latOut = clientstate.GetLatencyOut()
+    Globals.World.latIn = clientstate.GetLatencyIn()
+    Globals.World.Latency = Conversion.Time_to_Ticks((Globals.World.latOut + Globals.World.latIn) * (globals.TickInterval() * 66.67)) -- Converts time to ticks
 
     -- Player properties
     Globals.pLocal.Class = pLocal:GetPropInt("m_iClass") or 1
@@ -54,29 +70,34 @@ local function OnCreateMove()
     Globals.pLocal.WeaponDef = itemschema.GetItemDefinitionByID(Globals.pLocal.WeaponDefIndex)
     Globals.pLocal.WeaponName = Globals.pLocal.WeaponDef:GetName()
     Globals.pLocal.UsingMargetGarden = Globals.pLocal.WeaponDefIndex == 416
+    Globals.pLocal.Actions.NextAttackTimeAttackTime = Conversion.Time_to_Ticks(weapon:GetPropFloat("LocalActiveWeaponData", "m_flLastFireTime") or 0)
+    Globals.pLocal.Actions.LastAttackTime = Common.GetLastAttackTime(cmd, weapon) or 0
 
-    -- Swing properties
-    Globals.pLocal.SwingRange = weapon:GetSwingRange() or 48
-    Globals.pLocal.SwingHullSize = Globals.pLocal.WeaponDef:GetName() == "The Disciplinary Action" and 55.8 or 35.6
-    Globals.pLocal.SwingRange = Globals.pLocal.SwingRange + (Globals.pLocal.SwingHullSize / 2)
-    if Globals.StrafeData.inaccuracy then -- If we got inaccuracy in strafe calculations
-        Globals.pLocal.SwingRange = Globals.pLocal.SwingRange - math.abs(Globals.StrafeData.inaccuracy[Globals.pLocal.index] or 0)
+    if weapon:IsMeleeWeapon() then
+        -- Swing properties
+        Globals.pLocal.SwingData.SwingRange = weapon:GetSwingRange() or 48
+        Globals.pLocal.SwingData.SwingGHullSize = Globals.pLocal.WeaponDef:GetName() == "The Disciplinary Action" and 55.8 or 35.6
+        Globals.pLocal.SwingData.TotalSwingRange = Globals.pLocal.SwingData.SwingRange + (Globals.pLocal.SwingData.SwingHullSize / 2)
+
+        local HalfHullSize = (Globals.pLocal.SwingData.SwingHullSize / 2)
+        Globals.pLocal.SwingData.SwingHull = {
+            Max = Vector3(HalfHullSize,HalfHullSize,HalfHullSize),
+            Min = Vector3(-HalfHullSize,-HalfHullSize,-HalfHullSize)
+        }
+
+        if Globals.StrafeData.inaccuracy then -- If we got inaccuracy in strafe calculations
+            Globals.pLocal.SwingData.TotalSwingRange =  (Globals.pLocal.SwingData.TotalSwingRange - math.abs(Globals.StrafeData.inaccuracy[Globals.pLocal.index] or 0))
+        end
+        --m_flLastFireTime
     end
 
-    -- World properties
-    Globals.World.Gravity = client.GetConVar("sv_gravity")
-    Globals.World.StepHeight = pLocal:GetPropFloat("localdata", "m_flStepSize")
-    Globals.World.Lerp = client.GetConVar("cl_interp") or 0
-    Globals.World.latOut = clientstate.GetLatencyOut()
-    Globals.World.latIn = clientstate.GetLatencyIn()
-    Globals.World.Latency = Conversion.Time_to_Ticks((Globals.World.latOut + Globals.World.latIn) * (globals.TickInterval() * 66.67)) -- Converts time to ticks
+    -- Target properties
+    Globals.vTarget.entity = Common.GetBestTarget(pLocal)
 
-    -- GUI properties
-    Globals.Gui.Backtrack = gui.GetValue("Backtrack")
-    Globals.Gui.FakeLatency = gui.GetValue("Fake Latency")
-    Globals.Gui.FakeLatencyAmount = gui.GetValue("Fake Latency Value (MS)")
-    if not Globals.Gui.IsVisible then --dont force update if menu is open
-        Globals.Gui.CritHackKey = gui.GetValue("Crit Hack Key")
+    if Globals.vTarget.entity then
+        Globals.vTarget.index = Globals.vTarget.entity:GetIndex()
+        Globals.vTarget.GetAbsOrigin = Globals.vTarget.entity:GetAbsOrigin()
+        Globals.vTarget.PredTicks = Common.PredictPlayer(Globals.vTarget.entity, 13, Globals.StrafeData.strafeAngles[Globals.vTarget.index] or 0)
     end
 end
 
