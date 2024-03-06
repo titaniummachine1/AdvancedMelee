@@ -60,46 +60,65 @@ local function OnCreateMove(cmd)
     Globals.pLocal.ChargeLeft = pLocal:GetPropInt("m_flChargeMeter") or 0
 
     -- Weapon properties
-    Globals.pLocal.Weapon = pLocal:GetPropEntity("m_hActiveWeapon") or nil
-    local weapon = Globals.pLocal.Weapon
+    Globals.pLocal.WeaponsData.Weapon.Weapon = pLocal:GetPropEntity("m_hActiveWeapon") or nil
+    local weapon = Globals.pLocal.WeaponsData.Weapon.Weapon
     if not weapon then return end
 
-    Globals.pLocal.pWeaponData = weapon:GetWeaponData()
-    Globals.pLocal.WeaponID = weapon:GetWeaponID()
-    Globals.pLocal.WeaponDefIndex = weapon:GetPropInt("m_iItemDefinitionIndex")
-    Globals.pLocal.WeaponDef = itemschema.GetItemDefinitionByID(Globals.pLocal.WeaponDefIndex)
-    Globals.pLocal.WeaponName = Globals.pLocal.WeaponDef:GetName()
-    Globals.pLocal.UsingMargetGarden = Globals.pLocal.WeaponDefIndex == 416
+    Common.SetupWeaponData()
+
     Globals.pLocal.Actions.NextAttackTime = Conversion.Time_to_Ticks(weapon:GetPropFloat("m_flLastFireTime") or 0)
     --Globals.pLocal.Actions.NextAttacmTime2 = Conversion.Time_to_Ticks(pLocal:GetPropFloat("bcc_localdata", "m_flNextAttack"))
     Globals.pLocal.Actions.LastAttackTime, Globals.pLocal.Actions.Attacked = Common.GetLastAttackTime(cmd, weapon) or 0, false
-    Globals.pLocal.PrimaryWeapon =  pLocal:GetEntityForLoadoutSlot( LOADOUT_POSITION_PRIMARY )
-    Globals.pLocal.MeleeWeapon =  pLocal:GetEntityForLoadoutSlot( LOADOUT_POSITION_MELEE )
 
     if weapon:IsMeleeWeapon() then
-        -- Swing properties
-        Globals.pLocal.SwingData.SwingRange = weapon:GetSwingRange() or 48
-        Globals.pLocal.SwingData.SwingGHullSize = Globals.pLocal.WeaponDef:GetName() == "The Disciplinary Action" and 55.8 or 35.6
-        Globals.pLocal.SwingData.TotalSwingRange = Globals.pLocal.SwingData.SwingRange + (Globals.pLocal.SwingData.SwingHullSize / 2)
 
-        local HalfHullSize = (Globals.pLocal.SwingData.SwingHullSize / 2)
-        Globals.pLocal.SwingData.SwingHull = {
-            Max = Vector3(HalfHullSize,HalfHullSize,HalfHullSize),
-            Min = Vector3(-HalfHullSize,-HalfHullSize,-HalfHullSize)
+        -- Swing properties
+        local defaultSwingRange = 48
+        local disciplinaryActionHullSize = 55.8
+        local defaultHullSize = 36
+        local MarketGardenIndex = 416
+
+        Globals.pLocal.UsingMargetGarden = Globals.pLocal.WeaponDefIndex == MarketGardenIndex
+
+        local swingRange = weapon:GetSwingRange() or defaultSwingRange
+        local isDisciplinaryAction = Globals.pLocal.WeaponsData.MeleeWeapon.WeaponDef:GetName() == "The Disciplinary Action"
+        local swingHullSize = isDisciplinaryAction and disciplinaryActionHullSize or defaultHullSize
+        local halfHullSize = swingHullSize / 2
+
+        Globals.pLocal.WeaponsData.MeleeWeapon.SwingData.SwingRange = swingRange
+        Globals.pLocal.WeaponsData.MeleeWeapon.SwingData.SwingHullSize = swingHullSize
+        Globals.pLocal.WeaponsData.MeleeWeapon.SwingData.TotalSwingRange = swingRange + halfHullSize
+        Globals.pLocal.WeaponsData.MeleeWeapon.SwingData.SwingHull = {
+            Max = Vector3(halfHullSize, halfHullSize, halfHullSize),
+            Min = Vector3(-halfHullSize, -halfHullSize, -halfHullSize)
         }
 
         if Globals.StrafeData.inaccuracy then -- If we got inaccuracy in strafe calculations
-            Globals.pLocal.SwingData.TotalSwingRange =  (Globals.pLocal.SwingData.TotalSwingRange - math.abs(Globals.StrafeData.inaccuracy[Globals.pLocal.index] or 0))
+            local inaccuracy = math.abs(Globals.StrafeData.inaccuracy[Globals.pLocal.index] or 0)
+            Globals.pLocal.WeaponsData.MeleeWeapon.SwingData.TotalSwingRange = (Globals.pLocal.WeaponsData.MeleeWeapon.SwingData.TotalSwingRange - inaccuracy)
         end
     end
 
-    -- Target properties
-    Globals.vTarget.entity = Common.GetBestTarget(pLocal)
-
-    if Globals.vTarget.entity then
-        Globals.vTarget.index = Globals.vTarget.entity:GetIndex()
-        Globals.vTarget.GetAbsOrigin = Globals.vTarget.entity:GetAbsOrigin()
-        Globals.vTarget.PredTicks = Common.PredictPlayer(Globals.vTarget.entity, 13, Globals.StrafeData.strafeAngles[Globals.vTarget.index] or 0)
+    local keybind = Globals.Menu.Aimbot.Keybind
+    if keybind == 0 or input.IsButtonDown(keybind) then
+        Globals.ShouldFindTarget = true
+    else
+        Globals.ShouldFindTarget = falses
+    end
+    --[-----Get best target-----]
+    if Globals.ShouldFindTarget == true then
+        -- Check if need to search for target
+        Globals.vTarget.entity = Common.GetBestTarget(pLocal)
+        if Globals.vTarget.entity then
+            Globals.vTarget.index = Globals.vTarget.entity:GetIndex()
+            Globals.vTarget.GetAbsOrigin = Globals.vTarget.entity:GetAbsOrigin()
+            --[[prediction]]
+            Globals.vTarget.PredTicks = Common.PredictPlayer(Globals.vTarget.entity, 13, Globals.StrafeData.strafeAngles[Globals.vTarget.index] or 0) or {}
+            --print(Globals.vTarget.entity:GetName())
+        end
+    else
+        Globals.ResetTarget()
+        return
     end
 end
 

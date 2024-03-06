@@ -2,10 +2,10 @@ local Globals = {}
 
 Globals.Menu = {
     Tabs = {
-        Aimbot = true,
+        Misc = false,
         ChargeBot = false,
         Visuals = false,
-        Misc = false
+        Aimbot = true,
     },
 
     Aimbot = {
@@ -71,22 +71,47 @@ Globals.pLocal = {
     Viewheight = Vector3{0, 0, 75},
     VisPos = Vector3{0, 0, 75},
     PredTicks = {},
-    AttackTicks = {},
     NextAttackTime = 0,
-    PrimaryWeapon = nil,
-    MeleeWeapon = nil,
-    Weapon = nil,
-    pWeaponData = nil,
-    WeaponID = nil,
-    WeaponDefIndex = nil,
-    WeaponDef = nil,
-    WeaponName = nil,
-    UsingMargetGarden = false,
-    SwingData = {
-        SwingRange = 48,
-        SwingHullSize = 35.6,
-        SwingHull = {Max = Vector3(17.8,17.8,17.8), Min = Vector3(-17.8,-17.8,-17.8)},
-        TotalSwingRange = 48 + (35.6 / 2),
+    WeaponsData = {
+        UsingMargetGarden = false,
+        PrimaryWeapon = {
+            Weapon = nil,
+            WeaponData = nil,
+            WeaponID = nil,
+            WeaponDefIndex = nil,
+            WeaponDef = nil,
+            WeaponName = nil,
+        },
+        MeleeWeapon = {
+            Weapon = nil,
+            WeaponData = nil,
+            WeaponID = nil,
+            WeaponDefIndex = nil,
+            WeaponDef = nil,
+            WeaponName = nil,
+            SwingData = {
+                SmackDelay = 13,
+                SwingRange = 48,
+                SwingHullSize = 35.6,
+                SwingHull = {Max = Vector3(17.8,17.8,17.8), Min = Vector3(-17.8,-17.8,-17.8)},
+                TotalSwingRange = 48 + (35.6 / 2),
+            },
+        },
+        Weapon = {
+            Weapon = nil,
+            WeaponData = nil,
+            WeaponID = nil,
+            WeaponDefIndex = nil,
+            WeaponDef = nil,
+            WeaponName = nil,
+            SwingData = {
+                SmackDelay = 13,
+                SwingRange = 48,
+                SwingHullSize = 35.6,
+                SwingHull = {Max = Vector3(17.8,17.8,17.8), Min = Vector3(-17.8,-17.8,-17.8)},
+                TotalSwingRange = 48 + (35.6 / 2),
+            },
+        },
     },
     Actions = {
         CanSwing = false,
@@ -104,14 +129,29 @@ Globals.pLocal = {
 
 Globals.Players = {}
 
+Globals.ShouldFindTarget = false
+
 Globals.vTarget = {
     entity = nil,
     index = nil,
     GetAbsOrigin = nil,
     PredTicks = {},
     BacktrackTicks = {},
+    AttackTicks = {},
     vHitbox = {Min = Vector3(-24, -24, 0), Max = Vector3(24, 24, 82)}
 }
+
+function Globals.ResetTarget()
+    Globals.vTarget = {
+        entity = nil,
+        index = nil,
+        GetAbsOrigin = nil,
+        PredTicks = {},
+        BacktrackTicks = {},
+        AttackTicks = {},
+        vHitbox = {Min = Vector3(-24, -24, 0), Max = Vector3(24, 24, 82)}
+    }
+end
 
 Globals.StrafeData = {
     Strafe = false,
@@ -131,6 +171,10 @@ Globals.World = {
     Latency = 0,
     LatIn = 0,
     Lat_out = 0,
+}
+
+Globals.Visuals = {
+    SphereCache = {},
 }
 
 Globals.Gui = {

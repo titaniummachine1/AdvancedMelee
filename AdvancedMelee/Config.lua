@@ -91,13 +91,19 @@ function Config.LoadCFG()
         local chunk, err = load("return " .. content)
         if chunk then
             local loadedMenu = chunk()
-            if checkAllFunctionsExist(Menu, loadedMenu) then
+            if checkAllFunctionsExist(Menu, loadedMenu) and not input.IsButtonDown(KEY_LSHIFT) then
                 local successMessage = shortFilePath
                 printc(100, 183, 0, 255, "Succes Loading Config: Path:" .. successMessage)
                 Notify.Simple("Success! Loaded Config from", successMessage, 5)
                 Menu = loadedMenu
                 Globals.Menu = Menu
                 return loadedMenu
+            elseif input.IsButtonDown(KEY_LSHIFT) then
+                local warningMessage = "Creating a new config."
+                printc( 255, 0, 0, 255, warningMessage)
+                Notify.Simple("Warning", warningMessage, 5)
+                Config.CreateCFG(Menu) -- Save the config
+                return Menu
             else
                 local warningMessage = "Config is outdated or invalid. Creating a new config."
                 printc( 255, 0, 0, 255, warningMessage)

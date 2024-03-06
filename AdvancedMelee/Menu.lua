@@ -94,12 +94,13 @@ function OnDrawMenu()
 
     if Lbox_Menu_Open == true and ImMenu and ImMenu.Begin("Advanced Melee", true) then
             local Tabs = Menu.Tabs
+            local TabsOrder = { "Aimbot", "Visuals", "Misc", "ChargeBot" }
 
             ImMenu.BeginFrame(1)
-            for tab, _ in pairs(Tabs) do
+            for _, tab in ipairs(TabsOrder) do
                 if ImMenu.Button(tab) then
                     for otherTab, _ in pairs(Tabs) do
-                        Menu.Tabs[otherTab] = (otherTab == tab)
+                        Tabs[otherTab] = (otherTab == tab)
                     end
                 end
             end

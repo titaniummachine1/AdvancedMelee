@@ -53,6 +53,46 @@ function Common.GetLastAttackTime(cmd, weapon)
     return LastAttackTick, false
 end
 
+function Common.SetupWeaponData()
+    local pLocal = Globals.pLocal.entity
+    Globals.pLocal.WeaponsData.PrimaryWeapon.Weapon =  pLocal:GetEntityForLoadoutSlot( LOADOUT_POSITION_PRIMARY )
+    Globals.pLocal.WeaponsData.MeleeWeapon.Weapon =  pLocal:GetEntityForLoadoutSlot( LOADOUT_POSITION_MELEE )
+
+    local weapon = Globals.pLocal.WeaponsData.PrimaryWeapon.Weapon
+    if not weapon then print("noWeapon") return end
+    Globals.pLocal.WeaponsData.PrimaryWeapon.WeaponData = weapon:GetWeaponData()
+    Globals.pLocal.WeaponsData.PrimaryWeapon.WeaponID = weapon:GetWeaponID()
+    Globals.pLocal.WeaponsData.PrimaryWeapon.WeaponDefIndex = weapon:GetPropInt("m_iItemDefinitionIndex")
+    Globals.pLocal.WeaponsData.PrimaryWeapon.WeaponDef = itemschema.GetItemDefinitionByID(Globals.pLocal.WeaponsData.PrimaryWeapon.WeaponDefIndex)
+    Globals.pLocal.WeaponsData.PrimaryWeapon.WeaponName = Globals.pLocal.WeaponsData.PrimaryWeapon.WeaponDef:GetName()
+
+    weapon = Globals.pLocal.WeaponsData.MeleeWeapon.Weapon
+    if not weapon then print("noWeapon") return end
+    Globals.pLocal.WeaponsData.MeleeWeapon.WeaponData = weapon:GetWeaponData()
+    Globals.pLocal.WeaponsData.MeleeWeapon.SwingData.SmackDelay = Conversion.Time_to_Ticks(Globals.pLocal.WeaponsData.MeleeWeapon.WeaponData.smackDelay)
+    Globals.pLocal.WeaponsData.MeleeWeapon.WeaponID = weapon:GetWeaponID()
+    Globals.pLocal.WeaponsData.MeleeWeapon.WeaponDefIndex = weapon:GetPropInt("m_iItemDefinitionIndex")
+    Globals.pLocal.WeaponsData.MeleeWeapon.WeaponDef = itemschema.GetItemDefinitionByID(Globals.pLocal.WeaponsData.MeleeWeapon.WeaponDefIndex)
+    Globals.pLocal.WeaponsData.MeleeWeapon.WeaponName = Globals.pLocal.WeaponsData.MeleeWeapon.WeaponDef:GetName()
+
+    if Globals.pLocal.WeaponsData.MeleeWeapon.WeaponDefIndex == 416 then
+        Globals.pLocal.WeaponsData.UsingMargetGarden = true
+    else
+        Globals.pLocal.WeaponsData.UsingMargetGarden = false
+    end
+
+    weapon = Globals.pLocal.WeaponsData.Weapon.Weapon
+    if not weapon then print("noWeapon") return end
+    Globals.pLocal.WeaponsData.Weapon.WeaponData = weapon:GetWeaponData()
+    if weapon:IsMeleeWeapon() then   
+        Globals.pLocal.WeaponsData.Weapon.SwingData.SmackDelay = Conversion.Time_to_Ticks(Globals.pLocal.WeaponsData.Weapon.WeaponData.smackDelay) 
+    end
+    Globals.pLocal.WeaponsData.Weapon.WeaponID = weapon:GetWeaponID()
+    Globals.pLocal.WeaponsData.Weapon.WeaponDefIndex = weapon:GetPropInt("m_iItemDefinitionIndex")
+    Globals.pLocal.WeaponsData.Weapon.WeaponDef = itemschema.GetItemDefinitionByID(Globals.pLocal.WeaponsData.Weapon.WeaponDefIndex)
+    Globals.pLocal.WeaponsData.Weapon.WeaponName = Globals.pLocal.WeaponsData.Weapon.WeaponDef:GetName()
+end
+
 --local fFalse = function () return false end
 
 -- [WIP] Predict the position of a player
@@ -183,7 +223,7 @@ function Common.GetBestTarget(me)
             goto continue
         end
 
-        local numBacktrackTicks = gui.GetValue("Fake Latency") == 1 and maxTick or gui.GetValue("Fake Latency") == 0 and gui.GetValue("Backtrack") == 1 and 4 or 0
+        --[[local numBacktrackTicks = gui.GetValue("Fake Latency") == 1 and maxTick or gui.GetValue("Fake Latency") == 0 and gui.GetValue("Backtrack") == 1 and 4 or 0
 
         if numBacktrackTicks ~= 0 then
             local playerIndex = player:GetIndex()
@@ -193,7 +233,7 @@ function Common.GetBestTarget(me)
             if #playerTicks[playerIndex] > numBacktrackTicks then
                 table.remove(playerTicks[playerIndex], 1)
             end
-        end
+        end]]
 
         local playerOrigin = player:GetAbsOrigin()
         local distance = (playerOrigin - Globals.pLocal.GetAbsOrigin):Length()
@@ -245,16 +285,16 @@ function Common.checkInRange(targetPos, spherePos, sphereRadius)
     if sphereRadius > distanceAlongVector then
         -- Calculate the direction from spherePos to closestPoint
         local direction = Common.Normalize(closestPoint - spherePos)
-        local closestPointLine = spherePos + direction * Globals.pLocal.SwingData.SwingRange
+        local closestPointLine = spherePos + direction * Globals.pLocal.WeaponsData.MeleeWeapon.SwingData.TotalSwingRange
 
         if Globals.Menu.Misc.AdvancedHitreg then
-            if sphereRadius > distanceAlongVector - Globals.pLocal.SwingData.SwingHullSize then --if trace line is needed
+            if sphereRadius > distanceAlongVector - Globals.pLocal.WeaponsData.MeleeWeapon.SwingData.SwingHullSize then --if trace line is needed
  
                 local trace = engine.TraceLine(spherePos, closestPointLine, MASK_SHOT_HULL)
                 if trace.fraction < 1 and trace.entity == TargetEntity then
                     return true, closestPoint
                 else
-                    trace = engine.TraceHull(spherePos, closestPointLine, Globals.SwingData.SwingHull.Min, Globals.SwingData.SwingHull.Max, MASK_SHOT_HULL)
+                    trace = engine.TraceHull(spherePos, closestPointLine, Globals.pLocal.WeaponsData.MeleeWeapon.SwingData.SwingHull.Min, Globals.pLocal.WeaponsData.MeleeWeapon.SwingData.SwingHull.Max, MASK_SHOT_HULL)
                     if trace.fraction < 1 and trace.entity == TargetEntity then
                         return true, closestPoint
                     else
@@ -262,7 +302,7 @@ function Common.checkInRange(targetPos, spherePos, sphereRadius)
                     end
                 end
             else
-                local trace = engine.TraceHull(spherePos,  closestPointLine, HitboxMin, HitboxMax, MASK_SHOT_HULL)
+                local trace = engine.TraceHull(spherePos,  closestPointLine, Globals.pLocal.WeaponsData.MeleeWeapon.SwingData.SwingHull.Min, Globals.pLocal.WeaponsData.MeleeWeapon.SwingData.SwingHull.Max, MASK_SHOT_HULL)
                 if trace.fraction < 1 and trace.entity == TargetEntity then
                     return true, closestPoint
                 else
@@ -358,5 +398,184 @@ function Common.CalcStrafe()
         ::continue::
     end
 end
+
+--[[ Sphere cache and drawn edges cache
+local sphere_cache = { vertices = {}, radius = 90, center = Vector3(0, 0, 0) }
+local drawnEdges = {}
+
+local function setup_sphere(center, radius, segments)
+    sphere_cache.center = center
+    sphere_cache.radius = radius
+    sphere_cache.segments = segments
+    sphere_cache.vertices = {}  -- Clear the old vertices
+
+    local thetaStep = math.pi / segments
+    local phiStep = 2 * math.pi / segments
+
+    for i = 0, segments - 1 do
+        local theta1 = thetaStep * i
+        local theta2 = thetaStep * (i + 1)
+
+        for j = 0, segments - 1 do
+            local phi1 = phiStep * j
+            local phi2 = phiStep * (j + 1)
+
+            -- Generate a square for each segment
+            table.insert(sphere_cache.vertices, {
+                Vector3(math.sin(theta1) * math.cos(phi1), math.sin(theta1) * math.sin(phi1), math.cos(theta1)),
+                Vector3(math.sin(theta1) * math.cos(phi2), math.sin(theta1) * math.sin(phi2), math.cos(theta1)),
+                Vector3(math.sin(theta2) * math.cos(phi2), math.sin(theta2) * math.sin(phi2), math.cos(theta2)),
+                Vector3(math.sin(theta2) * math.cos(phi1), math.sin(theta2) * math.sin(phi1), math.cos(theta2))
+            })
+        end
+    end
+end]]
+
+function Common.L_line(start_pos, end_pos, secondary_line_size)
+    if not (start_pos and end_pos) then
+        return
+    end
+    local direction = end_pos - start_pos
+    local direction_length = direction:Length()
+    if direction_length == 0 then
+        return
+    end
+    local normalized_direction = Normalize(direction)
+    local perpendicular = Vector3(normalized_direction.y, -normalized_direction.x, 0) * secondary_line_size
+    local w2s_start_pos = client.WorldToScreen(start_pos)
+    local w2s_end_pos = client.WorldToScreen(end_pos)
+    if not (w2s_start_pos and w2s_end_pos) then
+        return
+    end
+    local secondary_line_end_pos = start_pos + perpendicular
+    local w2s_secondary_line_end_pos = client.WorldToScreen(secondary_line_end_pos)
+    if w2s_secondary_line_end_pos then
+        draw.Line(w2s_start_pos[1], w2s_start_pos[2], w2s_end_pos[1], w2s_end_pos[2])
+        draw.Line(w2s_start_pos[1], w2s_start_pos[2], w2s_secondary_line_end_pos[1], w2s_secondary_line_end_pos[2])
+    end
+end
+
+function Common.arrowPathArrow2(startPos, endPos, width)
+    if not (startPos and endPos) then return nil, nil end
+
+    local direction = endPos - startPos
+    local length = direction:Length()
+    if length == 0 then return nil, nil end
+    direction = NormalizeVector(direction)
+
+    local perpDir = Vector3(-direction.y, direction.x, 0)
+    local leftBase = startPos + perpDir * width
+    local rightBase = startPos - perpDir * width
+
+    local screenStartPos = client.WorldToScreen(startPos)
+    local screenEndPos = client.WorldToScreen(endPos)
+    local screenLeftBase = client.WorldToScreen(leftBase)
+    local screenRightBase = client.WorldToScreen(rightBase)
+
+    if screenStartPos and screenEndPos and screenLeftBase and screenRightBase then
+        draw.Line(screenStartPos[1], screenStartPos[2], screenEndPos[1], screenEndPos[2])
+        draw.Line(screenLeftBase[1], screenLeftBase[2], screenEndPos[1], screenEndPos[2])
+        draw.Line(screenRightBase[1], screenRightBase[2], screenEndPos[1], screenEndPos[2])
+    end
+
+    return leftBase, rightBase
+end
+
+function Common.arrowPathArrow(startPos, endPos, arrowWidth)
+    if not startPos or not endPos then return end
+
+    local direction = endPos - startPos
+    if direction:Length() == 0 then return end
+
+    -- Normalize the direction vector and calculate perpendicular direction
+    direction = NormalizeVector(direction)
+    local perpendicular = Vector3(-direction.y, direction.x, 0) * arrowWidth
+
+    -- Calculate points for arrow fins
+    local finPoint1 = startPos + perpendicular
+    local finPoint2 = startPos - perpendicular
+
+    -- Convert world positions to screen positions
+    local screenStartPos = client.WorldToScreen(startPos)
+    local screenEndPos = client.WorldToScreen(endPos)
+    local screenFinPoint1 = client.WorldToScreen(finPoint1)
+    local screenFinPoint2 = client.WorldToScreen(finPoint2)
+
+    -- Draw the arrow
+    if screenStartPos and screenEndPos then
+        draw.Line(screenEndPos[1], screenEndPos[2], screenFinPoint1[1], screenFinPoint1[2])
+        draw.Line(screenEndPos[1], screenEndPos[2], screenFinPoint2[1], screenFinPoint2[2])
+        draw.Line(screenFinPoint1[1], screenFinPoint1[2], screenFinPoint2[1], screenFinPoint2[2])
+    end
+end
+
+function Common.drawPavement(startPos, endPos, width)
+    if not (startPos and endPos) then return nil end
+
+    local direction = endPos - startPos
+    local length = direction:Length()
+    if length == 0 then return nil end
+    direction = NormalizeVector(direction)
+
+    -- Calculate perpendicular direction for the width
+    local perpDir = Vector3(-direction.y, direction.x, 0)
+
+    -- Calculate left and right base points of the pavement
+    local leftBase = startPos + perpDir * width
+    local rightBase = startPos - perpDir * width
+
+    -- Convert positions to screen coordinates
+    local screenStartPos = client.WorldToScreen(startPos)
+    local screenEndPos = client.WorldToScreen(endPos)
+    local screenLeftBase = client.WorldToScreen(leftBase)
+    local screenRightBase = client.WorldToScreen(rightBase)
+
+    -- Draw the pavement
+    if screenStartPos and screenEndPos and screenLeftBase and screenRightBase then
+        draw.Line(screenStartPos[1], screenStartPos[2], screenEndPos[1], screenEndPos[2])
+        draw.Line(screenStartPos[1], screenStartPos[2], screenLeftBase[1], screenLeftBase[2])
+        draw.Line(screenStartPos[1], screenStartPos[2], screenRightBase[1], screenRightBase[2])
+    end
+
+    return leftBase, rightBase
+end
+
+
+-- Call setup_sphere once at the start of your program
+--setup_sphere(Vector3(0, 0, 0), 90, 7)
+
+local white_texture = draw.CreateTextureRGBA(string.char(
+	0xff, 0xff, 0xff, 25,
+	0xff, 0xff, 0xff, 25,
+	0xff, 0xff, 0xff, 25,
+	0xff, 0xff, 0xff, 25
+), 2, 2);
+
+--[[local drawPolygon = (function()
+	local v1x, v1y = 0, 0;
+	local function cross(a, b)
+		return (b[1] - a[1]) * (v1y - a[2]) - (b[2] - a[2]) * (v1x - a[1])
+	end
+
+	local TexturedPolygon = draw.TexturedPolygon;
+
+	return function(vertices)
+		local cords, reverse_cords = {}, {};
+		local sizeof = #vertices;
+		local sum = 0;
+
+		v1x, v1y = vertices[1][1], vertices[1][2];
+		for i, pos in pairs(vertices) do
+			local convertedTbl = {pos[1], pos[2], 0, 0};
+
+			cords[i], reverse_cords[sizeof - i + 1] = convertedTbl, convertedTbl;
+
+			sum = sum + cross(pos, vertices[(i % sizeof) + 1]);
+		end
+
+
+		TexturedPolygon(white_texture, (sum < 0) and reverse_cords or cords, true)
+	end
+end)();]]
 
 return Common
