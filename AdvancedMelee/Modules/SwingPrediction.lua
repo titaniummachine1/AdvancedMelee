@@ -7,10 +7,7 @@ local Common = require("AdvancedMelee.Common")
 local SwingPrediction = {}
 
 local function OnCreateMove()
-    local Swinghull = Globals.pLocal.SwingData.SwingHullSize or 35.6
-    local SwingRange = Globals.pLocal.SwingData.SwingRange or 48
-    local TotalSwingRange = Globals.pLocal.SwingData.TotalSwingRange or 48 + (35.6 / 2)
-
+    
 end
 
 

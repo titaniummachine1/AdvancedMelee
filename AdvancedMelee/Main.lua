@@ -70,8 +70,11 @@ local function OnCreateMove(cmd)
     Globals.pLocal.WeaponDef = itemschema.GetItemDefinitionByID(Globals.pLocal.WeaponDefIndex)
     Globals.pLocal.WeaponName = Globals.pLocal.WeaponDef:GetName()
     Globals.pLocal.UsingMargetGarden = Globals.pLocal.WeaponDefIndex == 416
-    Globals.pLocal.Actions.NextAttackTimeAttackTime = Conversion.Time_to_Ticks(weapon:GetPropFloat("LocalActiveWeaponData", "m_flLastFireTime") or 0)
-    Globals.pLocal.Actions.LastAttackTime = Common.GetLastAttackTime(cmd, weapon) or 0
+    Globals.pLocal.Actions.NextAttackTime = Conversion.Time_to_Ticks(weapon:GetPropFloat("m_flLastFireTime") or 0)
+    --Globals.pLocal.Actions.NextAttacmTime2 = Conversion.Time_to_Ticks(pLocal:GetPropFloat("bcc_localdata", "m_flNextAttack"))
+    Globals.pLocal.Actions.LastAttackTime, Globals.pLocal.Actions.Attacked = Common.GetLastAttackTime(cmd, weapon) or 0, false
+    Globals.pLocal.PrimaryWeapon =  pLocal:GetEntityForLoadoutSlot( LOADOUT_POSITION_PRIMARY )
+    Globals.pLocal.MeleeWeapon =  pLocal:GetEntityForLoadoutSlot( LOADOUT_POSITION_MELEE )
 
     if weapon:IsMeleeWeapon() then
         -- Swing properties
@@ -88,7 +91,6 @@ local function OnCreateMove(cmd)
         if Globals.StrafeData.inaccuracy then -- If we got inaccuracy in strafe calculations
             Globals.pLocal.SwingData.TotalSwingRange =  (Globals.pLocal.SwingData.TotalSwingRange - math.abs(Globals.StrafeData.inaccuracy[Globals.pLocal.index] or 0))
         end
-        --m_flLastFireTime
     end
 
     -- Target properties

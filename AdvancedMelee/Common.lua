@@ -41,15 +41,19 @@ local AttackHappened = false
 function Common.GetLastAttackTime(cmd, weapon)
     local TickCount = globals.TickCount()
     local NextAttackTime = Globals.pLocal.Actions.NextAttackTime
-    if not AttackHappened and NextAttackTime >= TickCount then
+    --return (nextPrimaryAttack <= globals.CurTime()) and (nextAttack <= globals.CurTime())
+    if AttackHappened == false and NextAttackTime >= TickCount then
         LastAttackTick = TickCount
-        print(LastAttackTick)
+        --print(LastAttackTick)
         AttackHappened = true
-    elseif AttackHappened and NextAttackTime < TickCount then
+        return LastAttackTick, AttackHappened
+    elseif NextAttackTime < TickCount and AttackHappened == true then
         AttackHappened = false
     end
-    return LastAttackTick
+    return LastAttackTick, false
 end
+
+--local fFalse = function () return false end
 
 -- [WIP] Predict the position of a player
 ---@param player WPlayer
