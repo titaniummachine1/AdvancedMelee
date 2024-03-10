@@ -12,7 +12,7 @@
 local MenuModule = {}
 
 --[[ Imports ]]
-local Globals = require("AdvancedMelee.Globals")
+local G = require("AdvancedMelee.Globals")
 
 ---@type boolean, ImMenu
 local menuLoaded, ImMenu = pcall(require, "ImMenu")
@@ -27,7 +27,7 @@ function MenuModule.toggleMenu()
     local currentTime = globals.RealTime()
     if currentTime - lastToggleTime >= toggleCooldown then
         Lbox_Menu_Open = not Lbox_Menu_Open  -- Toggle the state
-        Globals.Gui.IsVisible = Lbox_Menu_Open
+        G.Gui.IsVisible = Lbox_Menu_Open
         lastToggleTime = currentTime  -- Reset the last toggle time
     end
 end
@@ -84,7 +84,7 @@ end
 function OnDrawMenu()
     draw.SetFont(Fonts.Verdana)
     draw.Color(255, 255, 255, 255)
-    local Menu = Globals.Menu
+    local Menu = G.Menu
     local Main = Menu.Main
 
     -- Inside your OnCreateMove or similar function where you check for input

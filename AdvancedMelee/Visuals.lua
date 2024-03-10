@@ -1,72 +1,70 @@
 --[[ Imports ]]
 local Common = require("AdvancedMelee.Common")
-local Globals = require("AdvancedMelee.Globals")
+local G = require("AdvancedMelee.Globals")
 local Visuals = {}
 
 local tahoma_bold = draw.CreateFont("Tahoma", 12, 800, FONTFLAG_OUTLINE)
 
 --[[ Functions ]]
 local function doDraw()
-    local Menu = Globals.Menu
-    -- Define local variables
-    local smackDelay = Globals.pLocal.WeaponsData.MeleeWeapon.SwingData.SmackDelay
-    local pLocal = Globals.pLocal
-    local pLocalOrigin = Globals.pLocal.GetAbsOrigin
-    local pLocalPath = pLocal.PredTicks -- Predicted positions
-    local pLocalFuture = pLocalPath[smackDelay] -- The last tick of the predicted positions
+    --if true then return end
+    local Menu = G.Menu
+    
+if (engine.Con_IsVisible() or engine.IsGameUIVisible() or G.Gui.IsVisible) or not Menu.Visuals.EnableVisuals then return end
+  -- Define local variables
+local pLocal = G and G.pLocal or nil
+if not pLocal then return end
 
-    local vTarget = Globals.vTarget.entity
-    if vTarget then
-        local vPlayerPath = Globals.vTarget.PredTicks or {} -- Predicted positions
+local smackDelay = pLocal.WpData and pLocal.WpData.SwingData and pLocal.WpData.SwingData.SmackDelay or 13
+local pLocalOrigin = pLocal.GetAbsOrigin
+local pLocalPath = pLocal.PredTicks -- Predicted positions
+local pLocalFuture = pLocalPath[smackDelay] -- The last tick of the predicted positions
+local pWeapon = pLocal.WpData and pLocal.WpData.CurrWeapon and pLocal.WpData.CurrWeapon.Weapon or nil
+local pLocalClass = pLocal.Class
+local chargeLeft = pLocal.ChargeLeft
+
+if pWeapon and pWeapon:IsMeleeWeapon() and pLocal.entity and pLocal.entity:IsAlive() then
+    draw.Color( 255, 255, 255, 255 )
+    local w, h = draw.GetScreenSize()
+    if Menu and Menu.Visuals and Menu.Visuals.Local and Menu.Visuals.Local.RangeCircle == true and pLocalFuture then
+        local center = pLocalFuture -- Center of the circle at the player's feet
+        local viewPos = pLocalFuture + Vector3(0,0,G and G.pLocal and G.pLocal.Viewheight or 0)-- View position to shoot traces from
+        local radius = (Menu and Menu.Misc and Menu.Misc.ChargeReach and pLocalClass == 4 and chargeLeft == 100 and G and G.Static and G.Static.ChargeReach) or G.pLocal.WpData.SwingData.TotalSwingRange or G.Static.DefaultSwingRange + G.Static.HalfHullSize
+        local segments = 32 -- Number of segments to draw the circle
+        local angleStep = (2 * math.pi) / segments
+        -- Determine the color of the circle based on TargetPlayer
+        local circleColor = Target and {10, 255, 0, 255} or {255, 255, 255, 255} -- Green if TargetPlayer exists, otherwise white
+        print(radius)
+        -- Set the drawing color
+        draw.Color(table.unpack(circleColor))
+
+        local vertices = {} -- Table to store adjusted vertices
+
+        -- Calculate vertices and adjust based on trace results
+        for i = 1, segments do
+            local angle = angleStep * i
+            local circlePoint = center + Vector3(math.cos(angle), math.sin(angle), 0) * radius
+
+            local trace = engine.TraceLine(viewPos, circlePoint, MASK_SHOT_HULL) --engine.TraceHull(viewPos, circlePoint, vHitbox[1], vHitbox[2], MASK_SHOT_HULL)
+            local endPoint = trace and trace.fraction < 1.0 and trace.endpos or circlePoint
+
+            vertices[i] = client.WorldToScreen(endPoint)
+        end
+
+        -- Draw the circle using adjusted vertices
+        for i = 1, segments do
+            local j = (i % segments) + 1 -- Wrap around to the first vertex after the last one
+            if vertices[i] and vertices[j] then
+                draw.Line(vertices[i][1], vertices[i][2], vertices[j][1], vertices[j][2])
+            end
+        end
+    end
+
+    local Target = G.Target.entity
+    if Target then
+        local vPlayerPath = G.Target.PredTicks -- Predicted positions
         local vPlayerFuture = vPlayerPath[smackDelay] -- The last tick of the predicted positions
     end
-    local pWeapon = Globals.pLocal.WeaponsData.Weapon
-    local pLocalClass = Globals.pLocal.Class
-    local chargeLeft = Globals.pLocal.ChargeLeft
-    local Charge_Range = 128
-
-if not (engine.Con_IsVisible() or engine.IsGameUIVisible()) and Menu.Visuals.EnableVisuals then
-
-        --local pLocal = entities.GetLocalPlayer()
-
-    if Menu.Visuals.EnableVisuals or pWeapon:IsMeleeWeapon() and pLocal and pLocal:IsAlive() then
-        draw.Color( 255, 255, 255, 255 )
-        local w, h = draw.GetScreenSize()
-        if Menu.Visuals.Local.RangeCircle and pLocalFuture then
-                    draw.Color(255, 255, 255, 255)
-                    local center = pLocalFuture - Globals.pLocal.Viewheight -- Center of the circle at the player's feet
-                    local viewPos = pLocalOrigin -- View position to shoot traces from
-                    local radius = Menu.Misc.ChargeReach and pLocalClass == 4 and chargeLeft == 100 and Charge_Range or swingrange  -- Radius of the circle
-                    local segments = 32 -- Number of segments to draw the circle
-                    local angleStep = (2 * math.pi) / segments
-
-                    -- Determine the color of the circle based on TargetPlayer
-                    local circleColor = vTarget and {0, 255, 0, 255} or {255, 255, 255, 255} -- Green if TargetPlayer exists, otherwise white
-
-                    -- Set the drawing color
-                    draw.Color(table.unpack(circleColor))
-
-                    local vertices = {} -- Table to store adjusted vertices
-
-                    -- Calculate vertices and adjust based on trace results
-                    for i = 1, segments do
-                        local angle = angleStep * i
-                        local circlePoint = center + Vector3(math.cos(angle), math.sin(angle), 0) * radius
-
-                        local trace = engine.TraceLine(viewPos, circlePoint, MASK_SHOT_HULL) --engine.TraceHull(viewPos, circlePoint, vHitbox[1], vHitbox[2], MASK_SHOT_HULL)
-                        local endPoint = trace.fraction < 1.0 and trace.endpos or circlePoint
-
-                        vertices[i] = client.WorldToScreen(endPoint)
-                    end
-
-                    -- Draw the circle using adjusted vertices
-                    for i = 1, segments do
-                        local j = (i % segments) + 1 -- Wrap around to the first vertex after the last one
-                        if vertices[i] and vertices[j] then
-                            draw.Line(vertices[i][1], vertices[i][2], vertices[j][1], vertices[j][2])
-                        end
-                    end
-        end
             if Menu.Visuals.Local.path.enable and pLocalFuture then
                 local style = Menu.Visuals.Local.path.Style
                 local width1 = Menu.Visuals.Local.path.width
@@ -248,8 +246,8 @@ if not (engine.Con_IsVisible() or engine.IsGameUIVisible()) and Menu.Visuals.Ena
                 end]]
 
                     -- enemy
-                    if vTarget and Globals.vTarget.PredTicks then
-                        local vPlayerPath =  Globals.vTarget.PredTicks
+                    if Target and G.Target.PredTicks then
+                        local vPlayerPath =  G.Target.PredTicks
 
                         -- Draw lines between the predicted positions
                         if Menu.Visuals.Target.path.enable then
@@ -425,7 +423,6 @@ if not (engine.Con_IsVisible() or engine.IsGameUIVisible()) and Menu.Visuals.Ena
                         end
                     end
         end
-    end
 end
 
 --[[ Callbacks ]]

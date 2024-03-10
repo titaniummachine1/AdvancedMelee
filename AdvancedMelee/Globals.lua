@@ -1,6 +1,6 @@
-local Globals = {}
+local G = {}
 
-Globals.Menu = {
+G.Menu = {
     Tabs = {
         Misc = false,
         ChargeBot = false,
@@ -56,25 +56,49 @@ Globals.Menu = {
     },
 }
 
-Globals.Defaults = {
-    vHitbox = {Min = Vector3(-24, -24, 0), Max = Vector3(24, 24, 82)}
+G.Static = {
+    -- Precomputed static values
+    DefaultSwingRange = 48,
+    disciplinaryActionHullSize = 55.8,
+    defaultHullSize = 36,
+    HalfHullSize = 18,
+    MarketGardenIndex = 416,
+    ChargeReach = 128,
 }
 
-Globals.pLocal = {
+G.Defaults = {
     entity = nil,
     index = 1,
     team = 1,
     Class = 1,
-    GetAbsOrigin = Vector3{0, 0, 0},
+    AbsOrigin = Vector3{0, 0, 0},
     OnGround = true,
     ViewAngles = EulerAngles{0, 0, 0},
     Viewheight = Vector3{0, 0, 75},
     VisPos = Vector3{0, 0, 75},
     PredTicks = {},
+    BacktrackTicks = {},
+    AttackTicks = {},
+    vHitbox = {Min = Vector3(-24, -24, 0), Max = Vector3(24, 24, 82)},
+}
+
+G.pLocal = {
+    entity = nil,
+    index = 1,
+    team = 1,
+    Class = 1,
+    AbsOrigin = Vector3{0, 0, 0},
+    OnGround = true,
+    ViewAngles = EulerAngles{0, 0, 0},
+    Viewheight = Vector3{0, 0, 75},
+    VisPos = Vector3{0, 0, 75},
+    PredTicks = {},
+    BacktrackTicks = {},
+    AttackTicks = {},
     NextAttackTime = 0,
-    WeaponsData = {
+    WpData = {
         UsingMargetGarden = false,
-        PrimaryWeapon = {
+        PWeapon = {
             Weapon = nil,
             WeaponData = nil,
             WeaponID = nil,
@@ -82,35 +106,28 @@ Globals.pLocal = {
             WeaponDef = nil,
             WeaponName = nil,
         },
-        MeleeWeapon = {
+        MWeapon = {
             Weapon = nil,
             WeaponData = nil,
             WeaponID = nil,
             WeaponDefIndex = nil,
             WeaponDef = nil,
             WeaponName = nil,
-            SwingData = {
-                SmackDelay = 13,
-                SwingRange = 48,
-                SwingHullSize = 35.6,
-                SwingHull = {Max = Vector3(17.8,17.8,17.8), Min = Vector3(-17.8,-17.8,-17.8)},
-                TotalSwingRange = 48 + (35.6 / 2),
-            },
         },
-        Weapon = {
+        CurrWeapon = {
             Weapon = nil,
             WeaponData = nil,
             WeaponID = nil,
             WeaponDefIndex = nil,
             WeaponDef = nil,
-            WeaponName = nil,
-            SwingData = {
-                SmackDelay = 13,
-                SwingRange = 48,
-                SwingHullSize = 35.6,
-                SwingHull = {Max = Vector3(17.8,17.8,17.8), Min = Vector3(-17.8,-17.8,-17.8)},
-                TotalSwingRange = 48 + (35.6 / 2),
-            },
+            WeaponName = nil, 
+        },
+        SwingData = {
+            SmackDelay = 13,
+            SwingRange = 48,
+            SwingHullSize = 35.6,
+            SwingHull = {Max = Vector3(17.8,17.8,17.8), Min = Vector3(-17.8,-17.8,-17.8)},
+            TotalSwingRange = 48 + (35.6 / 2),
         },
     },
     Actions = {
@@ -127,33 +144,90 @@ Globals.pLocal = {
     vHitbox = {Min = Vector3(-24, -24, 0), Max = Vector3(24, 24, 82)}
 }
 
-Globals.Players = {}
-
-Globals.ShouldFindTarget = false
-
-Globals.vTarget = {
+G.Target = {
     entity = nil,
     index = nil,
-    GetAbsOrigin = nil,
+    AbsOrigin = Vector3(0,0,0),
+    Viewheight = 75,
+    ViewPos = Vector3(0,0,75),
     PredTicks = {},
     BacktrackTicks = {},
     AttackTicks = {},
     vHitbox = {Min = Vector3(-24, -24, 0), Max = Vector3(24, 24, 82)}
 }
 
-function Globals.ResetTarget()
-    Globals.vTarget = {
+G.Players = {}
+G.ShouldFindTarget = false
+
+function G.ResetTarget()
+    G.Target = G.Defaults
+end
+
+function G.ResetLocal()
+    G.pLocal = {
         entity = nil,
-        index = nil,
-        GetAbsOrigin = nil,
+        index = 1,
+        team = 1,
+        Class = 1,
+        AbsOrigin = Vector3{0, 0, 0},
+        OnGround = true,
+        ViewAngles = EulerAngles{0, 0, 0},
+        Viewheight = Vector3{0, 0, 75},
+        VisPos = Vector3{0, 0, 75},
         PredTicks = {},
         BacktrackTicks = {},
         AttackTicks = {},
+        NextAttackTime = 0,
+        WpData = {
+            UsingMargetGarden = false,
+            PWeapon = {
+                Weapon = nil,
+                WeaponData = nil,
+                WeaponID = nil,
+                WeaponDefIndex = nil,
+                WeaponDef = nil,
+                WeaponName = nil,
+            },
+            MWeapon = {
+                Weapon = nil,
+                WeaponData = nil,
+                WeaponID = nil,
+                WeaponDefIndex = nil,
+                WeaponDef = nil,
+                WeaponName = nil,
+            },
+            CurrWeapon = {
+                Weapon = nil,
+                WeaponData = nil,
+                WeaponID = nil,
+                WeaponDefIndex = nil,
+                WeaponDef = nil,
+                WeaponName = nil, 
+            },
+            SwingData = {
+                SmackDelay = 13,
+                SwingRange = 48,
+                SwingHullSize = 35.6,
+                SwingHull = {Max = Vector3(17.8,17.8,17.8), Min = Vector3(-17.8,-17.8,-17.8)},
+                TotalSwingRange = 48 + (35.6 / 2),
+            },
+        },
+        Actions = {
+            CanSwing = false,
+            Attacked = false,
+            NextAttackTime = 0,
+            NextAttackTime2 = 0,
+            LastAttackTime = 0,
+            TicksBeforeHit = 0,
+            CanCharge = false,
+        },
+        BlastJump = false,
+        ChargeLeft = 0,
         vHitbox = {Min = Vector3(-24, -24, 0), Max = Vector3(24, 24, 82)}
     }
 end
 
-Globals.StrafeData = {
+G.StrafeData = {
     Strafe = false,
     lastAngles = {}, ---@type table<number, Vector3>
     lastDeltas = {}, ---@type table<number, number>
@@ -164,7 +238,7 @@ Globals.StrafeData = {
     maxPositions = 4, -- Number of past positions to consider
 }
 
-Globals.World = {
+G.World = {
     Gravity = 800,
     StepHeight = 18,
     Lerp = 0,
@@ -173,11 +247,11 @@ Globals.World = {
     Lat_out = 0,
 }
 
-Globals.Visuals = {
+G.Visuals = {
     SphereCache = {},
 }
 
-Globals.Gui = {
+G.Gui = {
     IsVisible = false,
     FakeLatency = false,
     FakeLatencyAmount = 0,
@@ -185,4 +259,4 @@ Globals.Gui = {
     CritHackKey = gui.GetValue("Crit Hack Key")
 }
 
-return Globals
+return G

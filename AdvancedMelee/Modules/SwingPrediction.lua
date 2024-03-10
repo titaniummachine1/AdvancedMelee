@@ -1,13 +1,13 @@
 --[[Swing Prediction Module]]--
---[[    Predicting swing   ]]--
+--[[         Aimbot        ]]--
 
-local Globals = require("AdvancedMelee.Globals")
-local Common = require("AdvancedMelee.Common")
+local G = require("AdvancedMelee.Globals")
+--local Common = require("AdvancedMelee.Common")
 
-local SwingPrediction = {}
+local Aimbot = {}
 
 local function OnCreateMove()
-    
+
 end
 
 
@@ -17,4 +17,4 @@ callbacks.Unregister("CreateMove", "AM_OnTick")                     -- unregiste
 --Register callbacks--
 callbacks.Register("CreateMove", "AM_OnTick", OnCreateMove)        -- register the "CreateMove" callback
 
-return SwingPrediction
+return Aimbot

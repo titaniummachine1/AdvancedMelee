@@ -1,7 +1,7 @@
 --[[ Imports ]]
 local Common = require("AdvancedMelee.Common")
-local Globals = require("AdvancedMelee.Globals")
-local Menu = Globals.Menu
+local G = require("AdvancedMelee.Globals")
+local Menu = G.Menu
 
 local Config = {}
 
@@ -83,7 +83,7 @@ function Config.LoadCFG()
     local file = io.open(filepath, "r")
     local filePathstring = tostring(Config.GetFilePath())
     local shortFilePath = filePathstring:match(".*\\(.*\\.*)$")
-    Menu = Globals.Menu
+    Menu = G.Menu
 
     if file then
         local content = file:read("*a")
@@ -96,7 +96,7 @@ function Config.LoadCFG()
                 printc(100, 183, 0, 255, "Succes Loading Config: Path:" .. successMessage)
                 Notify.Simple("Success! Loaded Config from", successMessage, 5)
                 Menu = loadedMenu
-                Globals.Menu = Menu
+                G.Menu = Menu
                 return loadedMenu
             elseif input.IsButtonDown(KEY_LSHIFT) then
                 local warningMessage = "Creating a new config."

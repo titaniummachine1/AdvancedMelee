@@ -1,7 +1,7 @@
 ---@class Common
 local Common = {}
-local Globals = require("AdvancedMelee.Globals")
-local Menu = Globals.Menu
+local G = require("AdvancedMelee.Globals")
+local Menu = G.Menu
 
 ---@type boolean, LNXlib
 libLoaded, Lib = pcall(require, "LNXlib")
@@ -40,8 +40,8 @@ local AttackHappened = false
 
 function Common.GetLastAttackTime(cmd, weapon)
     local TickCount = globals.TickCount()
-    local NextAttackTime = Globals.pLocal.Actions.NextAttackTime
-    --return (nextPrimaryAttack <= globals.CurTime()) and (nextAttack <= globals.CurTime())
+    local NextAttackTime = G.pLocal.Actions.NextAttackTime
+    --return (nextPrimaryAttack <= G.CurTime()) and (nextAttack <= G.CurTime())
     if AttackHappened == false and NextAttackTime >= TickCount then
         LastAttackTick = TickCount
         --print(LastAttackTick)
@@ -54,43 +54,71 @@ function Common.GetLastAttackTime(cmd, weapon)
 end
 
 function Common.SetupWeaponData()
-    local pLocal = Globals.pLocal.entity
-    Globals.pLocal.WeaponsData.PrimaryWeapon.Weapon =  pLocal:GetEntityForLoadoutSlot( LOADOUT_POSITION_PRIMARY )
-    Globals.pLocal.WeaponsData.MeleeWeapon.Weapon =  pLocal:GetEntityForLoadoutSlot( LOADOUT_POSITION_MELEE )
+    local pLocal = G.pLocal.entity
 
-    local weapon = Globals.pLocal.WeaponsData.PrimaryWeapon.Weapon
-    if not weapon then print("noWeapon") return end
-    Globals.pLocal.WeaponsData.PrimaryWeapon.WeaponData = weapon:GetWeaponData()
-    Globals.pLocal.WeaponsData.PrimaryWeapon.WeaponID = weapon:GetWeaponID()
-    Globals.pLocal.WeaponsData.PrimaryWeapon.WeaponDefIndex = weapon:GetPropInt("m_iItemDefinitionIndex")
-    Globals.pLocal.WeaponsData.PrimaryWeapon.WeaponDef = itemschema.GetItemDefinitionByID(Globals.pLocal.WeaponsData.PrimaryWeapon.WeaponDefIndex)
-    Globals.pLocal.WeaponsData.PrimaryWeapon.WeaponName = Globals.pLocal.WeaponsData.PrimaryWeapon.WeaponDef:GetName()
+--[[Primary Weapon Data]]--
+    G.pLocal.WpData.PWeapon.Weapon =  pLocal:GetEntityForLoadoutSlot( LOADOUT_POSITION_PRIMARY )
+    local weapon = G.pLocal.WpData.PWeapon.Weapon
 
-    weapon = Globals.pLocal.WeaponsData.MeleeWeapon.Weapon
-    if not weapon then print("noWeapon") return end
-    Globals.pLocal.WeaponsData.MeleeWeapon.WeaponData = weapon:GetWeaponData()
-    Globals.pLocal.WeaponsData.MeleeWeapon.SwingData.SmackDelay = Conversion.Time_to_Ticks(Globals.pLocal.WeaponsData.MeleeWeapon.WeaponData.smackDelay)
-    Globals.pLocal.WeaponsData.MeleeWeapon.WeaponID = weapon:GetWeaponID()
-    Globals.pLocal.WeaponsData.MeleeWeapon.WeaponDefIndex = weapon:GetPropInt("m_iItemDefinitionIndex")
-    Globals.pLocal.WeaponsData.MeleeWeapon.WeaponDef = itemschema.GetItemDefinitionByID(Globals.pLocal.WeaponsData.MeleeWeapon.WeaponDefIndex)
-    Globals.pLocal.WeaponsData.MeleeWeapon.WeaponName = Globals.pLocal.WeaponsData.MeleeWeapon.WeaponDef:GetName()
-
-    if Globals.pLocal.WeaponsData.MeleeWeapon.WeaponDefIndex == 416 then
-        Globals.pLocal.WeaponsData.UsingMargetGarden = true
-    else
-        Globals.pLocal.WeaponsData.UsingMargetGarden = false
+    if not weapon then print("no Primary Weapon") else
+        G.pLocal.WpData.PWeapon.WeaponData = weapon:GetWeaponData()
+        G.pLocal.WpData.PWeapon.WeaponID = weapon:GetWeaponID()
+        G.pLocal.WpData.PWeapon.WeaponDefIndex = weapon:GetPropInt("m_iItemDefinitionIndex")
+        if G.pLocal.WpData.PWeapon.WeaponDefIndex then
+            G.pLocal.WpData.PWeapon.WeaponDef = itemschema.GetItemDefinitionByID(G.pLocal.WpData.PWeapon.WeaponDefIndex)
+            G.pLocal.WpData.PWeapon.WeaponName = G.pLocal.WpData.PWeapon.WeaponDef:GetName()
+        end
     end
 
-    weapon = Globals.pLocal.WeaponsData.Weapon.Weapon
-    if not weapon then print("noWeapon") return end
-    Globals.pLocal.WeaponsData.Weapon.WeaponData = weapon:GetWeaponData()
-    if weapon:IsMeleeWeapon() then   
-        Globals.pLocal.WeaponsData.Weapon.SwingData.SmackDelay = Conversion.Time_to_Ticks(Globals.pLocal.WeaponsData.Weapon.WeaponData.smackDelay) 
+--[[Melee Weapon Data]]--
+    G.pLocal.WpData.MWeapon.Weapon =  pLocal:GetEntityForLoadoutSlot( LOADOUT_POSITION_MELEE )
+    weapon = G.pLocal.WpData.MWeapon.Weapon
+
+    if not weapon then print("no Melee Weapon") return false end
+    G.pLocal.WpData.MWeapon.WeaponData = weapon:GetWeaponData()
+    G.pLocal.WpData.MWeapon.WeaponID = weapon:GetWeaponID()
+    G.pLocal.WpData.MWeapon.WeaponDefIndex = weapon:GetPropInt("m_iItemDefinitionIndex")
+    G.pLocal.WpData.MWeapon.WeaponDef = itemschema.GetItemDefinitionByID(G.pLocal.WpData.MWeapon.WeaponDefIndex)
+    G.pLocal.WpData.MWeapon.WeaponName = G.pLocal.WpData.MWeapon.WeaponDef:GetName()
+
+--[[Current Weapon Data]]--
+    G.pLocal.WpData.UsingMargetGarden = false
+    weapon = G.pLocal.WpData.CurrWeapon.Weapon
+    if not weapon then print("no Current Weapon") return false end
+        local currWeapon = G.pLocal.WpData.CurrWeapon
+        currWeapon.WeaponData = weapon:GetWeaponData()
+        currWeapon.WeaponID = weapon:GetWeaponID()
+        currWeapon.WeaponDefIndex = weapon:GetPropInt("m_iItemDefinitionIndex")
+        currWeapon.WeaponDef = itemschema.GetItemDefinitionByID(currWeapon.WeaponDefIndex)
+        currWeapon.WeaponName = currWeapon.WeaponDef:GetName()
+
+    if weapon:IsMeleeWeapon() then
+        local swingData = G.pLocal.WpData.SwingData 
+        -- Swing properties
+            swingData.SmackDelay = Conversion.Time_to_Ticks(currWeapon.WeaponData.smackDelay) or 13
+            G.pLocal.UsingMargetGarden = currWeapon.WeaponDefIndex == MarketGardenIndex
+
+        --[[Swing Data]]--
+        local swingRange = weapon:GetSwingRange() or G.Static.DefaultSwingRange
+        local isDisciplinaryAction = (currWeapon.WeaponDef:GetName() == "The Disciplinary Action")
+        local swingHullSize = isDisciplinaryAction and disciplinaryActionHullSize or G.Static.defaultHullSize
+        local halfHullSize = G.Static.HalfHullSize
+            swingData.SwingRange = swingRange
+            swingData.SwingHullSize = swingHullSize
+            swingData.TotalSwingRange = swingRange + halfHullSize
+            swingData.SwingHull = {
+                Max = Vector3(halfHullSize, halfHullSize, halfHullSize),
+                Min = Vector3(-halfHullSize, -halfHullSize, -halfHullSize)
+            }
+
+            if G.StrafeData.inaccuracy then -- If we got inaccuracy in strafe calculations
+                local inaccuracy = math.abs(G.StrafeData.inaccuracy[G.pLocal.index] or 0)
+                swingData.TotalSwingRange = swingData.TotalSwingRange - inaccuracy
+            end
+        G.pLocal.WpData.SwingData = swingData --save values
     end
-    Globals.pLocal.WeaponsData.Weapon.WeaponID = weapon:GetWeaponID()
-    Globals.pLocal.WeaponsData.Weapon.WeaponDefIndex = weapon:GetPropInt("m_iItemDefinitionIndex")
-    Globals.pLocal.WeaponsData.Weapon.WeaponDef = itemschema.GetItemDefinitionByID(Globals.pLocal.WeaponsData.Weapon.WeaponDefIndex)
-    Globals.pLocal.WeaponsData.Weapon.WeaponName = Globals.pLocal.WeaponsData.Weapon.WeaponDef:GetName()
+    G.pLocal.WpData.CurrWeapon = currWeapon --save values
+    return true
 end
 
 --local fFalse = function () return false end
@@ -102,17 +130,22 @@ end
 ---@param shouldHitEntity fun(entity: WEntity, contentsMask: integer): boolean?
 ---@return { pos : Vector3[], vel: Vector3[], onGround: boolean[] }?
 function Common.PredictPlayer(player, t, d)
-        if not Globals.World.Gravity or not Globals.World.StepHeight then return nil end
+        if not G.World.Gravity or not G.World.StepHeight then return nil end
         local vUp = Vector3(0, 0, 1)
-        local vStep = Vector3(0, 0, Globals.World.StepHeight)
+        local vStep = Vector3(0, 0, G.World.StepHeight)
         local shouldHitEntity = function(entity) return entity:GetName() ~= player:GetName() end --trace ignore simulated player 
         local pFlags = player:GetPropInt("m_fFlags")
         local OnGround = pFlags & FL_ONGROUND == 1
-        local vHitbox = Globals.pLocal.vHitbox and player == Globals.pLocal.entity
-        or Globals.vTarget.vHitbox 
-        or Globals.Defaults.vHitbox
-        local pLocal = Globals.pLocal.entity
-        local pLocalIndex = Globals.pLocal.index
+        local vHitbox
+        if G.pLocal.vHitbox and player == G.pLocal.entity then
+            vHitbox = G.pLocal.vHitbox
+        elseif G.Target.vHitbox then
+            vHitbox = G.Target.vHitbox
+        else
+            vHitbox = G.Defaults.vHitbox
+        end
+        local pLocal = G.pLocal.entity
+        local pLocalIndex = G.pLocal.index
 
         -- Add the current record
         local _out = {
@@ -199,7 +232,7 @@ function Common.PredictPlayer(player, t, d)
             -- Gravity
             --local isSwimming, isWalking = checkPlayerState(player) -- todo: fix this
             if not onGround1 then
-                vel.z = vel.z - Globals.World.Gravity * globals.TickInterval()
+                vel.z = vel.z - G.World.Gravity * globals.TickInterval()
             end
 
             -- Add the prediction record
@@ -209,13 +242,13 @@ function Common.PredictPlayer(player, t, d)
         return _out
 end
 
-local maxTick = Conversion.Time_to_Ticks(Globals.Gui.FakeLatencyAmount / 1000)
+local maxTick = Conversion.Time_to_Ticks(G.Gui.FakeLatencyAmount / 1000)
 
 function Common.GetBestTarget(me)
     local bestTarget = nil
     local bestFactor = 0
 
-    for _, player in pairs(Globals.Players) do
+    for _, player in pairs(G.Players) do
         if player == nil or not player:IsAlive()
         or player:IsDormant()
         or player == me or player:GetTeamNumber() == me:GetTeamNumber()
@@ -236,14 +269,14 @@ function Common.GetBestTarget(me)
         end]]
 
         local playerOrigin = player:GetAbsOrigin()
-        local distance = (playerOrigin - Globals.pLocal.GetAbsOrigin):Length()
+        local distance = (playerOrigin - G.pLocal.GetAbsOrigin):Length()
 
         if distance <= 770 then
             local Pviewoffset = player:GetPropVector("localdata", "m_vecViewOffset[0]")
             local Pviewpos = playerOrigin + Pviewoffset
 
-            local angles = Math.PositionAngles(Globals.pLocal.GetAbsOrigin, Pviewpos)
-            local fov = Math.AngleFov(Globals.pLocal.ViewAngles, angles)
+            local angles = Math.PositionAngles(G.pLocal.GetAbsOrigin, Pviewpos)
+            local fov = Math.AngleFov(G.pLocal.ViewAngles, angles)
 
             if fov <= Menu.Aimbot.AimbotFOV then
                 local distanceFactor = Math.RemapValClamped(distance, 0, 1000, 1, 0.9)
@@ -264,12 +297,12 @@ end
 
 -- Function to check if target is in range
 function Common.checkInRange(targetPos, spherePos, sphereRadius)
-    local HitboxMin = Globals.vTarget.vHitbox.Min
-    local HitboxMax = Globals.vTarget.vHitbox.Max
-    local TargetEntity = Globals.vTarget.entity
+    local HitboxMin = G.Target.vHitbox.Min
+    local HitboxMax = G.Target.vHitbox.Max
+    local TargetEntity = G.Target.entity
     --if Menu.Misc.ChargeReach and pLocalClass == 4 and chargeLeft == 100 then sphereRadius = 128 end
-    local hitbox_min_trigger = Globals.vTarget.GetAbsOrigin + HitboxMin
-    local hitbox_max_trigger = Globals.vTarget.GetAbsOrigin + HitboxMax
+    local hitbox_min_trigger = G.Target.GetAbsOrigin + HitboxMin
+    local hitbox_max_trigger = G.Target.GetAbsOrigin + HitboxMax
 
     -- Calculate the closest point on the hitbox to the sphere
     local closestPoint = Vector3(
@@ -285,16 +318,16 @@ function Common.checkInRange(targetPos, spherePos, sphereRadius)
     if sphereRadius > distanceAlongVector then
         -- Calculate the direction from spherePos to closestPoint
         local direction = Common.Normalize(closestPoint - spherePos)
-        local closestPointLine = spherePos + direction * Globals.pLocal.WeaponsData.MeleeWeapon.SwingData.TotalSwingRange
+        local closestPointLine = spherePos + direction * G.pLocal.WeaponsData.MeleeWeapon.SwingData.TotalSwingRange
 
-        if Globals.Menu.Misc.AdvancedHitreg then
-            if sphereRadius > distanceAlongVector - Globals.pLocal.WeaponsData.MeleeWeapon.SwingData.SwingHullSize then --if trace line is needed
+        if G.Menu.Misc.AdvancedHitreg then
+            if sphereRadius > distanceAlongVector - G.pLocal.WeaponsData.SwingData.SwingHullSize then --if trace line is needed
  
                 local trace = engine.TraceLine(spherePos, closestPointLine, MASK_SHOT_HULL)
                 if trace.fraction < 1 and trace.entity == TargetEntity then
                     return true, closestPoint
                 else
-                    trace = engine.TraceHull(spherePos, closestPointLine, Globals.pLocal.WeaponsData.MeleeWeapon.SwingData.SwingHull.Min, Globals.pLocal.WeaponsData.MeleeWeapon.SwingData.SwingHull.Max, MASK_SHOT_HULL)
+                    trace = engine.TraceHull(spherePos, closestPointLine, G.pLocal.WeaponsData.MeleeWeapon.SwingData.SwingHull.Min, G.pLocal.WeaponsData.MeleeWeapon.SwingData.SwingHull.Max, MASK_SHOT_HULL)
                     if trace.fraction < 1 and trace.entity == TargetEntity then
                         return true, closestPoint
                     else
@@ -302,7 +335,7 @@ function Common.checkInRange(targetPos, spherePos, sphereRadius)
                     end
                 end
             else
-                local trace = engine.TraceHull(spherePos,  closestPointLine, Globals.pLocal.WeaponsData.MeleeWeapon.SwingData.SwingHull.Min, Globals.pLocal.WeaponsData.MeleeWeapon.SwingData.SwingHull.Max, MASK_SHOT_HULL)
+                local trace = engine.TraceHull(spherePos,  closestPointLine, G.pLocal.WeaponsData.MeleeWeapon.SwingData.SwingHull.Min, G.pLocal.WeaponsData.MeleeWeapon.SwingData.SwingHull.Max, MASK_SHOT_HULL)
                 if trace.fraction < 1 and trace.entity == TargetEntity then
                     return true, closestPoint
                 else
@@ -320,34 +353,34 @@ end
 
 function Common.CalcStrafe()
     local autostrafe = gui.GetValue("Auto Strafe")
-    local flags = Globals.pLocal.entity:GetPropInt("m_fFlags")
+    local flags = G.pLocal.entity:GetPropInt("m_fFlags")
     local OnGround = flags & FL_ONGROUND == 1
 
-    for idx, entity in ipairs(Globals.Players) do
+    for idx, entity in ipairs(G.Players) do
         local entityIndex = entity:GetIndex()
 
         if not entity or not entity:IsValid() and entity:IsDormant() or not entity:IsAlive() then
-            Globals.StrafeData.lastAngles[entityIndex] = nil
-            Globals.StrafeData.lastDeltas[entityIndex] = nil
-            Globals.StrafeData.avgDeltas[entityIndex] = nil
-            Globals.StrafeData.strafeAngles[entityIndex] = nil
-            Globals.StrafeData.inaccuracy[entityIndex] = nil
+            G.StrafeData.lastAngles[entityIndex] = nil
+            G.StrafeData.lastDeltas[entityIndex] = nil
+            G.StrafeData.avgDeltas[entityIndex] = nil
+            G.StrafeData.strafeAngles[entityIndex] = nil
+            G.StrafeData.inaccuracy[entityIndex] = nil
             goto continue
         end
 
         local v = entity:EstimateAbsVelocity()
-        if entity == Globals.pLocal.entity then
-            table.insert(Globals.StrafeData.pastPositions, 1, entity:GetAbsOrigin())
-            if #Globals.StrafeData.pastPositions > Globals.StrafeData.maxPositions then
-                table.remove(Globals.StrafeData.pastPositions)
+        if entity == G.pLocal.entity then
+            table.insert(G.StrafeData.pastPositions, 1, entity:GetAbsOrigin())
+            if #G.StrafeData.pastPositions > G.StrafeData.maxPositions then
+                table.remove(G.StrafeData.pastPositions)
             end
 
-            if not onGround and autostrafe == 2 and #Globals.StrafeData.pastPositions >= Globals.StrafeData.maxPositions then
+            if not onGround and autostrafe == 2 and #G.StrafeData.pastPositions >= G.StrafeData.maxPositions then
                 v = Vector3(0, 0, 0)
-                for i = 1, #Globals.StrafeData.pastPositions - 1 do
-                    v = v + (Globals.StrafeData.pastPositions[i] - Globals.StrafeData.pastPositions[i + 1])
+                for i = 1, #G.StrafeData.pastPositions - 1 do
+                    v = v + (G.StrafeData.pastPositions[i] - G.StrafeData.pastPositions[i + 1])
                 end
-                v = v / (Globals.StrafeData.maxPositions - 1)
+                v = v / (G.StrafeData.maxPositions - 1)
             else
                 v = entity:EstimateAbsVelocity()
             end
@@ -355,26 +388,26 @@ function Common.CalcStrafe()
 
         local angle = v:Angles()
 
-        if Globals.StrafeData.lastAngles[entityIndex] == nil then
-            Globals.StrafeData.lastAngles[entityIndex] = angle
+        if G.StrafeData.lastAngles[entityIndex] == nil then
+            G.StrafeData.lastAngles[entityIndex] = angle
             goto continue
         end
 
-        local delta = angle.y - Globals.StrafeData.lastAngles[entityIndex].y
+        local delta = angle.y - G.StrafeData.lastAngles[entityIndex].y
 
         -- Calculate the average delta using exponential smoothing
         local smoothingFactor = 0.2
-        local avgDelta = (Globals.StrafeData.lastDeltas[entityIndex] or delta) * (1 - smoothingFactor) + delta * smoothingFactor
+        local avgDelta = (G.StrafeData.lastDeltas[entityIndex] or delta) * (1 - smoothingFactor) + delta * smoothingFactor
 
         -- Save the average delta
-        Globals.StrafeData.avgDeltas[entityIndex] = avgDelta
+        G.StrafeData.avgDeltas[entityIndex] = avgDelta
 
         local vector1 = Vector3(1, 0, 0)
         local vector2 = Vector3(1, 0, 0)
 
         -- Apply deviation
         local ang1 = vector1:Angles()
-        ang1.y = ang1.y + (Globals.StrafeData.lastDeltas[entityIndex] or delta)
+        ang1.y = ang1.y + (G.StrafeData.lastDeltas[entityIndex] or delta)
         vector1 = ang1:Forward() * vector1:Length()
 
         local ang2 = vector2:Angles()
@@ -385,15 +418,15 @@ function Common.CalcStrafe()
         local distance = (vector1 - vector2):Length()
 
         -- Save the strafe angle
-        Globals.StrafeData.strafeAngles[entityIndex] = avgDelta
+        G.StrafeData.strafeAngles[entityIndex] = avgDelta
 
         -- Calculate the inaccuracy as the distance between the two vectors
-        Globals.StrafeData.inaccuracy[entityIndex] = distance
+        G.StrafeData.inaccuracy[entityIndex] = distance
 
         -- Save the last delta
-        Globals.StrafeData.lastDeltas[entityIndex] = delta
+        G.StrafeData.lastDeltas[entityIndex] = delta
 
-        Globals.StrafeData.lastAngles[entityIndex] = angle
+        G.StrafeData.lastAngles[entityIndex] = angle
 
         ::continue::
     end
