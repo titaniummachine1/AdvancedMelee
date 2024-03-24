@@ -1,5 +1,5 @@
 --[[
-    Advanced Melee for Lmaobox Recode
+    Advanced Melee for Lmaobox
     Author: titaniummachine1 (https://github.com/titaniummachine1)
     Credits:
     LNX (github.com/lnx00) for libries
@@ -17,10 +17,11 @@ require("AdvancedMelee.Visuals")
 require("AdvancedMelee.Menu")
 
 --[[Modules]]
-require("AdvancedMelee.Modules.Aimbot")
-
---Modules--
+--require("AdvancedMelee.Modules.Aimbot")
 require("AdvancedMelee.Modules.Misc")
+
+--[[Utils]]--
+local Predict = require("AdvancedMelee.Utils.Prediction")
 
 local function OnCreateMove(cmd)
     -- Update local player data
@@ -28,11 +29,10 @@ local function OnCreateMove(cmd)
     local pLocal = G.pLocal.entity
     if not pLocal or not pLocal:IsAlive() then return end -- If local player is not valid, returns
 
-    G.Players = entities.FindByClass("CTFPlayer")
-    local flags = pLocal:GetPropInt("m_fFlags")
+    Predict.Strafe()
 
-    -- Update strafe angles
-    Common.CalcStrafe()
+    G.Players = entities.FindByClass("CTFPlayer")
+    local pLflags = pLocal:GetPropInt("m_fFlags")
 
     -- GUI properties
     G.Gui.Backtrack = gui.GetValue("Backtrack")
@@ -55,7 +55,7 @@ local function OnCreateMove(cmd)
     G.pLocal.index = pLocal:GetIndex() or 1
     G.pLocal.team = pLocal:GetTeamNumber() or 1
     G.pLocal.ViewAngles = engine.GetViewAngles() or EulerAngles(0, 0, 0)
-    G.pLocal.OnGround = (flags & FL_ONGROUND == 1) or false
+    G.pLocal.OnGround = (pLflags & FL_ONGROUND == 1) or false
 
     G.pLocal.GetAbsOrigin = pLocal:GetAbsOrigin() or Vector3(0, 0, 0)
     local pLocalOrigin = G.pLocal.GetAbsOrigin
@@ -64,7 +64,13 @@ local function OnCreateMove(cmd)
     local viewheight = (adjustedHeight - pLocalOrigin):Length()
     G.pLocal.Viewheight = viewheight
     G.pLocal.VisPos = G.pLocal.GetAbsOrigin + Vector3(0, 0, G.pLocal.Viewheight)
-    G.pLocal.vHitbox.Max.z = G.Target.Viewheight + 12
+    pLflags = pLocal:GetPropInt("m_fFlags")
+    local DUCKING = (pLflags & FL_DUCKING == 2)
+    if DUCKING then
+        G.pLocal.vHitbox.Max.z = 62
+    else
+        G.pLocal.vHitbox.Max.z = 82
+    end
 
     G.pLocal.BlastJump = pLocal:InCond(81)
     G.pLocal.ChargeLeft = pLocal:GetPropInt("m_flChargeMeter") or 0
@@ -80,40 +86,16 @@ local function OnCreateMove(cmd)
     G.pLocal.Actions.LastAttackTime, G.pLocal.Actions.Attacked = Common.GetLastAttackTime(cmd, weapon) or 0, false
 
     --[[pLocal Prediction]]--
-    G.pLocal.PredTicks = Common.PredictPlayer(G.pLocal.entity, G.pLocal.WpData.SwingData.SmackDelay or 13, G.StrafeData.strafeAngles[G.pLocal.index] or 0)
-    if not G.pLocal.PredTicks then print("No Prediction") return end
-    print(#G.pLocal.PredTicks)
+
+    G.pLocal.PredData = Predict.PlayerMovement(pLocal, G.pLocal.WpData.SwingData.SmackDelay or 13, G.StrafeData.strafeAngles[G.pLocal.index] or 0)
+    if not G.pLocal.PredData then print("No Prediction") return end
+    --print(#G.pLocal.PredData.pos)
 
     local keybind = G.Menu.Aimbot.Keybind
     if keybind == 0 or input.IsButtonDown(keybind) then
         G.ShouldFindTarget = true
     else
         G.ShouldFindTarget = false
-    end
-
-    --[-----Get best target-----]
-    if G.ShouldFindTarget == true then
-        -- Check if need to search for target
-        G.Target.entity = Common.GetBestTarget(pLocal)
-        local Target = G.Target.entity
-        if G.Target.entity then
-            G.Target.index = G.Target.entity:GetIndex()
-            G.Target.AbsOrigin = G.Target.entity:GetAbsOrigin()
-            local Target_Origin = G.Target.AbsOrigin
-            --[[prediction]]
-            local viewOffset = Target:GetPropVector("localdata", "m_vecViewOffset[0]") or Vector3(0, 0, 75)
-            local adjustedHeight = Target_Origin + viewOffset
-            local viewheight = (adjustedHeight - Target_Origin):Length()
-            G.Target.Viewheight = viewheight or 75
-            G.Target.ViewPos = Target_Origin + Vector3(0,0,viewheight)
-            G.Target.vHitbox.Max.z = G.Target.Viewheight + 12
-
-            G.Target.PredTicks = Common.PredictPlayer(G.Target.entity, 13, G.StrafeData.strafeAngles[G.Target.index] or 0) or {}
-            --print(G.Target.entity:GetName())
-        end
-    else
-        G.ResetTarget()
-        return
     end
 end
 

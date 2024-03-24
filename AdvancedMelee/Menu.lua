@@ -14,6 +14,11 @@ local MenuModule = {}
 --[[ Imports ]]
 local G = require("AdvancedMelee.Globals")
 
+-- Unload the module if it's already loaded
+if package.loaded["ImMenu"] then
+    package.loaded["ImMenu"] = nil
+end
+
 ---@type boolean, ImMenu
 local menuLoaded, ImMenu = pcall(require, "ImMenu")
 assert(menuLoaded, "ImMenu not found, please install it!")

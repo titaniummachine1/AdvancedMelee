@@ -4,7 +4,7 @@ local G = require("AdvancedMelee.Globals")
 local Menu = G.Menu
 
 ---@type boolean, LNXlib
-libLoaded, Lib = pcall(require, "LNXlib")
+local libLoaded, Lib = pcall(require, "LNXlib")
 assert(libLoaded, "LNXlib not found, please install it!")
 assert(Lib.GetVersion() >= 1, "LNXlib version is too old, please update it!")
 
@@ -121,127 +121,6 @@ function Common.SetupWeaponData()
     return true
 end
 
---local fFalse = function () return false end
-
--- [WIP] Predict the position of a player
----@param player WPlayer
----@param t integer
----@param d number?
----@param shouldHitEntity fun(entity: WEntity, contentsMask: integer): boolean?
----@return { pos : Vector3[], vel: Vector3[], onGround: boolean[] }?
-function Common.PredictPlayer(player, t, d)
-        if not G.World.Gravity or not G.World.StepHeight then return nil end
-        local vUp = Vector3(0, 0, 1)
-        local vStep = Vector3(0, 0, G.World.StepHeight)
-        local shouldHitEntity = function(entity) return entity:GetName() ~= player:GetName() end --trace ignore simulated player 
-        local pFlags = player:GetPropInt("m_fFlags")
-        local OnGround = pFlags & FL_ONGROUND == 1
-        local vHitbox
-        if G.pLocal.vHitbox and player == G.pLocal.entity then
-            vHitbox = G.pLocal.vHitbox
-        elseif G.Target.vHitbox then
-            vHitbox = G.Target.vHitbox
-        else
-            vHitbox = G.Defaults.vHitbox
-        end
-        local pLocal = G.pLocal.entity
-        local pLocalIndex = G.pLocal.index
-
-        -- Add the current record
-        local _out = {
-            pos = { [0] = player:GetAbsOrigin() },
-            vel = { [0] = player:EstimateAbsVelocity() },
-            onGround = { [0] = OnGround }
-        }
-
-        -- Perform the prediction
-        for i = 1, t do
-            local lastP, lastV, lastG = _out.pos[i - 1], _out.vel[i - 1], _out.onGround[i - 1]
-
-            local pos = lastP + lastV * globals.TickInterval()
-            local vel = lastV
-            local onGround1 = lastG
-
-            -- Apply deviation
-            if d then
-                local ang = vel:Angles()
-                ang.y = ang.y + d
-                vel = ang:Forward() * vel:Length()
-            end
-
-            --[[ Forward collision ]]
-
-            local wallTrace = engine.TraceHull(lastP + vStep, pos + vStep, vHitbox.Min, vHitbox.Max, MASK_PLAYERSOLID_BRUSHONLY, shouldHitEntity)
-            --DrawLine(last.p + vStep, pos + vStep)
-            if wallTrace.fraction < 1 then
-                -- We'll collide
-                local normal = wallTrace.plane
-                local angle = math.deg(math.acos(normal:Dot(vUp)))
-
-                -- Check the wall angle
-                if angle > 55 then
-                    -- The wall is too steep, we'll collide
-                    local dot = vel:Dot(normal)
-                    vel = vel - normal * dot
-                end
-
-                pos.x, pos.y = wallTrace.endpos.x, wallTrace.endpos.y
-            end
-
-            --[[ Ground collision ]]
-
-            -- Don't step down if we're in-air
-            local downStep = vStep
-            if not onGround1 then downStep = Vector3() end
-
-            -- Ground collision
-            local groundTrace = engine.TraceHull(pos + vStep, pos - downStep, vHitbox.Min, vHitbox.Max, MASK_PLAYERSOLID_BRUSHONLY, shouldHitEntity)
-            if groundTrace.fraction < 1 then
-                -- We'll hit the ground
-                local normal = groundTrace.plane
-                local angle = math.deg(math.acos(normal:Dot(vUp)))
-
-                -- Check the ground angle
-                if angle < 45 then
-                    if onGround1 and player:GetIndex() == pLocalIndex and gui.GetValue("Bunny Hop") == 1 and input.IsButtonDown(KEY_SPACE) then
-                        -- Jump
-                        if gui.GetValue("Duck Jump") == 1 then
-                            vel.z = 277
-                            onGround1 = false
-                        else
-                            vel.z = 271
-                            onGround1 = false
-                        end
-                    else
-                        pos = groundTrace.endpos
-                        onGround1 = true
-                    end
-                elseif angle < 55 then
-                    vel.x, vel.y, vel.z = 0, 0, 0
-                    onGround1 = false
-                else
-                    local dot = vel:Dot(normal)
-                        vel = vel - normal * dot
-                        onGround1 = true
-                end
-            else
-                -- We're in the air
-                onGround1 = false
-            end
-
-            -- Gravity
-            --local isSwimming, isWalking = checkPlayerState(player) -- todo: fix this
-            if not onGround1 then
-                vel.z = vel.z - G.World.Gravity * globals.TickInterval()
-            end
-
-            -- Add the prediction record
-            _out.pos[i], _out.vel[i], _out.onGround[i] = pos, vel, onGround1
-        end
-
-        return _out
-end
-
 local maxTick = Conversion.Time_to_Ticks(G.Gui.FakeLatencyAmount / 1000)
 
 function Common.GetBestTarget(me)
@@ -255,18 +134,6 @@ function Common.GetBestTarget(me)
         or gui.GetValue("ignore cloaked") == 1 and player:InCond(4) then
             goto continue
         end
-
-        --[[local numBacktrackTicks = gui.GetValue("Fake Latency") == 1 and maxTick or gui.GetValue("Fake Latency") == 0 and gui.GetValue("Backtrack") == 1 and 4 or 0
-
-        if numBacktrackTicks ~= 0 then
-            local playerIndex = player:GetIndex()
-            playerTicks[playerIndex] = playerTicks[playerIndex] or {}
-            table.insert(playerTicks[playerIndex], player:GetAbsOrigin())
-
-            if #playerTicks[playerIndex] > numBacktrackTicks then
-                table.remove(playerTicks[playerIndex], 1)
-            end
-        end]]
 
         local playerOrigin = player:GetAbsOrigin()
         local distance = (playerOrigin - G.pLocal.GetAbsOrigin):Length()
@@ -321,21 +188,11 @@ function Common.checkInRange(targetPos, spherePos, sphereRadius)
         local closestPointLine = spherePos + direction * G.pLocal.WeaponsData.MeleeWeapon.SwingData.TotalSwingRange
 
         if G.Menu.Misc.AdvancedHitreg then
-            if sphereRadius > distanceAlongVector - G.pLocal.WeaponsData.SwingData.SwingHullSize then --if trace line is needed
- 
-                local trace = engine.TraceLine(spherePos, closestPointLine, MASK_SHOT_HULL)
-                if trace.fraction < 1 and trace.entity == TargetEntity then
-                    return true, closestPoint
-                else
-                    trace = engine.TraceHull(spherePos, closestPointLine, G.pLocal.WeaponsData.MeleeWeapon.SwingData.SwingHull.Min, G.pLocal.WeaponsData.MeleeWeapon.SwingData.SwingHull.Max, MASK_SHOT_HULL)
-                    if trace.fraction < 1 and trace.entity == TargetEntity then
-                        return true, closestPoint
-                    else
-                        return false, nil
-                    end
-                end
+            local trace = engine.TraceLine(spherePos, closestPointLine, MASK_SHOT_HULL)
+            if trace.fraction < 1 and trace.entity == TargetEntity then
+                return true, closestPoint
             else
-                local trace = engine.TraceHull(spherePos,  closestPointLine, G.pLocal.WeaponsData.MeleeWeapon.SwingData.SwingHull.Min, G.pLocal.WeaponsData.MeleeWeapon.SwingData.SwingHull.Max, MASK_SHOT_HULL)
+                trace = engine.TraceHull(spherePos, closestPointLine, G.pLocal.WeaponsData.MeleeWeapon.SwingData.SwingHull.Min, G.pLocal.WeaponsData.MeleeWeapon.SwingData.SwingHull.Max, MASK_SHOT_HULL)
                 if trace.fraction < 1 and trace.entity == TargetEntity then
                     return true, closestPoint
                 else
@@ -348,87 +205,6 @@ function Common.checkInRange(targetPos, spherePos, sphereRadius)
     else
         -- Target is not in range
         return false, nil
-    end
-end
-
-function Common.CalcStrafe()
-    local autostrafe = gui.GetValue("Auto Strafe")
-    local flags = G.pLocal.entity:GetPropInt("m_fFlags")
-    local OnGround = flags & FL_ONGROUND == 1
-
-    for idx, entity in ipairs(G.Players) do
-        local entityIndex = entity:GetIndex()
-
-        if not entity or not entity:IsValid() and entity:IsDormant() or not entity:IsAlive() then
-            G.StrafeData.lastAngles[entityIndex] = nil
-            G.StrafeData.lastDeltas[entityIndex] = nil
-            G.StrafeData.avgDeltas[entityIndex] = nil
-            G.StrafeData.strafeAngles[entityIndex] = nil
-            G.StrafeData.inaccuracy[entityIndex] = nil
-            goto continue
-        end
-
-        local v = entity:EstimateAbsVelocity()
-        if entity == G.pLocal.entity then
-            table.insert(G.StrafeData.pastPositions, 1, entity:GetAbsOrigin())
-            if #G.StrafeData.pastPositions > G.StrafeData.maxPositions then
-                table.remove(G.StrafeData.pastPositions)
-            end
-
-            if not onGround and autostrafe == 2 and #G.StrafeData.pastPositions >= G.StrafeData.maxPositions then
-                v = Vector3(0, 0, 0)
-                for i = 1, #G.StrafeData.pastPositions - 1 do
-                    v = v + (G.StrafeData.pastPositions[i] - G.StrafeData.pastPositions[i + 1])
-                end
-                v = v / (G.StrafeData.maxPositions - 1)
-            else
-                v = entity:EstimateAbsVelocity()
-            end
-        end
-
-        local angle = v:Angles()
-
-        if G.StrafeData.lastAngles[entityIndex] == nil then
-            G.StrafeData.lastAngles[entityIndex] = angle
-            goto continue
-        end
-
-        local delta = angle.y - G.StrafeData.lastAngles[entityIndex].y
-
-        -- Calculate the average delta using exponential smoothing
-        local smoothingFactor = 0.2
-        local avgDelta = (G.StrafeData.lastDeltas[entityIndex] or delta) * (1 - smoothingFactor) + delta * smoothingFactor
-
-        -- Save the average delta
-        G.StrafeData.avgDeltas[entityIndex] = avgDelta
-
-        local vector1 = Vector3(1, 0, 0)
-        local vector2 = Vector3(1, 0, 0)
-
-        -- Apply deviation
-        local ang1 = vector1:Angles()
-        ang1.y = ang1.y + (G.StrafeData.lastDeltas[entityIndex] or delta)
-        vector1 = ang1:Forward() * vector1:Length()
-
-        local ang2 = vector2:Angles()
-        ang2.y = ang2.y + avgDelta
-        vector2 = ang2:Forward() * vector2:Length()
-
-        -- Calculate the distance between the two vectors
-        local distance = (vector1 - vector2):Length()
-
-        -- Save the strafe angle
-        G.StrafeData.strafeAngles[entityIndex] = avgDelta
-
-        -- Calculate the inaccuracy as the distance between the two vectors
-        G.StrafeData.inaccuracy[entityIndex] = distance
-
-        -- Save the last delta
-        G.StrafeData.lastDeltas[entityIndex] = delta
-
-        G.StrafeData.lastAngles[entityIndex] = angle
-
-        ::continue::
     end
 end
 
@@ -473,7 +249,7 @@ function Common.L_line(start_pos, end_pos, secondary_line_size)
     if direction_length == 0 then
         return
     end
-    local normalized_direction = Normalize(direction)
+    local normalized_direction = Common.Normalize(direction)
     local perpendicular = Vector3(normalized_direction.y, -normalized_direction.x, 0) * secondary_line_size
     local w2s_start_pos = client.WorldToScreen(start_pos)
     local w2s_end_pos = client.WorldToScreen(end_pos)
@@ -494,7 +270,7 @@ function Common.arrowPathArrow2(startPos, endPos, width)
     local direction = endPos - startPos
     local length = direction:Length()
     if length == 0 then return nil, nil end
-    direction = NormalizeVector(direction)
+    direction = Common.Normalize(direction)
 
     local perpDir = Vector3(-direction.y, direction.x, 0)
     local leftBase = startPos + perpDir * width
@@ -521,7 +297,7 @@ function Common.arrowPathArrow(startPos, endPos, arrowWidth)
     if direction:Length() == 0 then return end
 
     -- Normalize the direction vector and calculate perpendicular direction
-    direction = NormalizeVector(direction)
+    direction = Common.Normalize(direction)
     local perpendicular = Vector3(-direction.y, direction.x, 0) * arrowWidth
 
     -- Calculate points for arrow fins
@@ -548,7 +324,7 @@ function Common.drawPavement(startPos, endPos, width)
     local direction = endPos - startPos
     local length = direction:Length()
     if length == 0 then return nil end
-    direction = NormalizeVector(direction)
+    direction = Common.Normalize(direction)
 
     -- Calculate perpendicular direction for the width
     local perpDir = Vector3(-direction.y, direction.x, 0)

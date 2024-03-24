@@ -7,17 +7,15 @@ local tahoma_bold = draw.CreateFont("Tahoma", 12, 800, FONTFLAG_OUTLINE)
 
 --[[ Functions ]]
 local function doDraw()
-    --if true then return end
-    local Menu = G.Menu
-    
-if (engine.Con_IsVisible() or engine.IsGameUIVisible() or G.Gui.IsVisible) or not Menu.Visuals.EnableVisuals then return end
+local Menu = G.Menu
+if (engine.Con_IsVisible() or engine.IsGameUIVisible()) or not Menu.Visuals.EnableVisuals then return end
   -- Define local variables
 local pLocal = G and G.pLocal or nil
 if not pLocal then return end
 
 local smackDelay = pLocal.WpData and pLocal.WpData.SwingData and pLocal.WpData.SwingData.SmackDelay or 13
 local pLocalOrigin = pLocal.GetAbsOrigin
-local pLocalPath = pLocal.PredTicks -- Predicted positions
+local pLocalPath = pLocal.PredData.pos -- Predicted positions
 local pLocalFuture = pLocalPath[smackDelay] -- The last tick of the predicted positions
 local pWeapon = pLocal.WpData and pLocal.WpData.CurrWeapon and pLocal.WpData.CurrWeapon.Weapon or nil
 local pLocalClass = pLocal.Class
@@ -29,13 +27,17 @@ if pWeapon and pWeapon:IsMeleeWeapon() and pLocal.entity and pLocal.entity:IsAli
     if Menu and Menu.Visuals and Menu.Visuals.Local and Menu.Visuals.Local.RangeCircle == true and pLocalFuture then
         local center = pLocalFuture -- Center of the circle at the player's feet
         local viewPos = pLocalFuture + Vector3(0,0,G and G.pLocal and G.pLocal.Viewheight or 0)-- View position to shoot traces from
-        local radius = (Menu and Menu.Misc and Menu.Misc.ChargeReach and pLocalClass == 4 and chargeLeft == 100 and G and G.Static and G.Static.ChargeReach) or G.pLocal.WpData.SwingData.TotalSwingRange or G.Static.DefaultSwingRange + G.Static.HalfHullSize
+        local radius = (Menu and Menu.Misc and Menu.Misc.ChargeReach and pLocalClass == 4 and chargeLeft == 100 and G and G.Static and G.Static.ChargeReach) or G.pLocal.WpData.SwingData.TotalSwingRange or G.Static.DefaultSwingRange + G.Static.HalfHullSize or 66
         local segments = 32 -- Number of segments to draw the circle
         local angleStep = (2 * math.pi) / segments
         -- Determine the color of the circle based on TargetPlayer
-        local circleColor = Target and {10, 255, 0, 255} or {255, 255, 255, 255} -- Green if TargetPlayer exists, otherwise white
-        print(radius)
-        -- Set the drawing color
+        local circleColor
+        if Target then
+            circleColor = {10, 255, 0, 255} -- Green if TargetPlayer exists
+        else
+            circleColor = {255, 255, 255, 255} -- White otherwise
+        end
+
         draw.Color(table.unpack(circleColor))
 
         local vertices = {} -- Table to store adjusted vertices
@@ -59,7 +61,6 @@ if pWeapon and pWeapon:IsMeleeWeapon() and pLocal.entity and pLocal.entity:IsAli
             end
         end
     end
-
     local Target = G.Target.entity
     if Target then
         local vPlayerPath = G.Target.PredTicks -- Predicted positions
